@@ -1,0 +1,16 @@
+# Environment variables
+.env
+.env.local
+
+# Dependencies
+node_modules/
+__pycache__/
+
+# Database
+*.sqlite3
+db.sqlite3
+
+# Build outputs
+dist/
+build/
+.next/

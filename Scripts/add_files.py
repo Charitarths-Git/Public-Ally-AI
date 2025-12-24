@@ -13,7 +13,6 @@ headers = {
 
 file_paths = [
     r"C:\Users\dhana\Downloads\twilio_2FA_recovery_code.txt",
-
 ]
 
 uploaded_file_ids = []

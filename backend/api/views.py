@@ -10,6 +10,7 @@ from .serializers import CallHistorySerializer, CallingSessionSerializer
 from .vapi_service import VAPIService
 
 
+
 class CallHistoryViewSet(viewsets.ModelViewSet):
     """ViewSet for Call History"""
     
@@ -27,38 +28,24 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def start_calling(request):
-    """Start the calling agent"""
+    # Extract phone number from the POST request body
+    phone_number = request.data.get('phone_number')
     
-    print("\n" + "="*50)
-    print("🚀 START CALLING REQUEST RECEIVED")
-    print("="*50)
-    print(f"📦 Request Data: {request.data}")
-    print(f"📦 Headers: {dict(request.headers)}")
-    print("="*50 + "\n")
-    
-    try:
-        # Create or get active session
-        session_id = str(uuid.uuid4())
+    if not phone_number:
+        return Response({'success': False, 'error': 'phone_number is required'}, status=400)
+
+    service = VAPIService()
+    call_response = service.start_call(phone_number)
+
+    if call_response:
+        # Create a session in your database to track the call
         session = CallingSession.objects.create(
-            session_id=session_id,
+            session_id=call_response.get('id'),
             is_active=True
         )
-        
-        print(f"✅ Created calling session: {session_id}")
-        
-        return Response({
-            'success': True,
-            'message': 'Calling agent started successfully',
-            'session_id': session_id,
-            'status': 'active'
-        }, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        print(f"❌ Error starting calling: {str(e)}")
-        return Response({
-            'success': False,
-            'error': str(e)
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'success': True, 'session_id': session.session_id})
+    
+    return Response({'success': False, 'error': 'VAPI Call Failed'}, status=500)
 
 
 @api_view(['POST'])

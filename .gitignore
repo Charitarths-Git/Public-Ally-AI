@@ -1,6 +1,7 @@
 # Environment variables
 .env
 .env.local
+backend/.venv
 
 # Dependencies
 node_modules/

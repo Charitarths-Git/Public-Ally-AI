@@ -37,7 +37,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
-  
+
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([
     { id: '1', name: 'Rajesh Kumar', phone: '+91 98765 43210', notes: 'Regarding water supply issue', status: 'pending' },
     { id: '2', name: 'Priya Sharma', phone: '+91 98765 43211', notes: 'Complaint about road maintenance', status: 'pending' },
@@ -95,15 +95,35 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const nextCallIndex = callingQueue.findIndex(entry => entry.status === 'pending');
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
-        <h1 className="text-4xl mb-2" style={{ color: accentColor }}>LokMitra-AI</h1>
-        <p className="text-gray-600">AI Voice Partner for Public Outreach in Delhi</p>
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl mb-2" style={{ color: accentColor }}>
+            LokMitra-AI
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            AI Voice Partner for Public Outreach in Delhi
+          </p>
+        </div>
+
+        <motion.button
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base"
+          style={{ backgroundColor: accentColor }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Start calling queued numbers"
+          onClick={() => {
+            console.log('Start Calling clicked');
+          }}
+        >
+          <Phone className="w-4 h-4 sm:w-5 sm:h-5" />  
+          Start Calling
+        </motion.button>
       </motion.div>
 
       {/* User Details */}
@@ -111,21 +131,21 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <h2 className="text-2xl mb-4" style={{ color: accentColor }}>User Details</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h2 className="text-xl sm:text-2xl mb-4" style={{ color: accentColor }}>User Details</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
           <div>
-            <p className="text-sm text-gray-500">Category</p>
-            <p className="text-lg capitalize">{userSession.category}</p>
+            <p className="text-xs sm:text-sm text-gray-500">Category</p>
+            <p className="text-base sm:text-lg capitalize">{userSession.category}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-500">Department/Body</p>
-            <p className="text-lg">{userSession.subcategory}</p>
+            <p className="text-xs sm:text-sm text-gray-500">Department/Body</p>
+            <p className="text-base sm:text-lg">{userSession.subcategory}</p>
           </div>
-          <div>
-            <p className="text-sm text-gray-500">Account Type</p>
-            <p className="text-lg">Demo Account</p>
+          <div className="sm:col-span-2 md:col-span-1">
+            <p className="text-xs sm:text-sm text-gray-500">Account Type</p>
+            <p className="text-base sm:text-lg">Demo Account</p>
           </div>
         </div>
       </motion.div>
@@ -135,16 +155,16 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <h2 className="text-2xl mb-4 flex items-center gap-2" style={{ color: accentColor }}>
-          <Settings className="w-6 h-6" />
+        <h2 className="text-xl sm:text-2xl mb-4 flex items-center gap-2" style={{ color: accentColor }}>
+          <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
           AI Customization
         </h2>
 
         {/* AI Name */}
         <div className="mb-6">
-          <label className="block text-sm text-gray-600 mb-2">AI Agent Name</label>
+          <label className="block text-xs sm:text-sm text-gray-600 mb-2">AI Agent Name</label>
           <div className="flex items-center gap-2">
             {isEditingName ? (
               <>
@@ -152,7 +172,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   type="text"
                   value={tempName}
                   onChange={(e) => setTempName(e.target.value)}
-                  className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="flex-1 px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base"
                   autoFocus
                 />
                 <motion.button
@@ -161,7 +181,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Check className="w-5 h-5" />
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
                 <motion.button
                   onClick={handleCancelName}
@@ -169,22 +189,22 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
               </>
             ) : (
               <>
-                <span className="text-xl flex-1">{aiName}</span>
+                <span className="text-lg sm:text-xl flex-1 break-words">{aiName}</span>
                 <motion.button
                   onClick={() => {
                     setTempName(aiName);
                     setIsEditingName(true);
                   }}
-                  className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100"
+                  className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 flex-shrink-0"
                   whileHover={{ scale: 1.05 }}
                   title="Edit AI name"
                 >
-                  <Edit2 className="w-5 h-5" />
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
               </>
             )}
@@ -193,18 +213,18 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
         {/* Description */}
         <div className="mb-6">
-          <label className="block text-sm text-gray-600 mb-2">Description</label>
-          <p className="text-gray-700 bg-gray-50 p-4 rounded-lg">
+          <label className="block text-xs sm:text-sm text-gray-600 mb-2">Description</label>
+          <p className="text-sm sm:text-base text-gray-700 bg-gray-50 p-3 sm:p-4 rounded-lg">
             {aiName} is an AI voice agent serving <strong>{userSession.subcategory}</strong> to help people through voice interactions and knowledge access.
           </p>
         </div>
 
         {/* Escalation Number */}
         <div>
-          <label className="block text-sm text-gray-600 mb-2 flex items-center gap-2">
-            Human-in-the-Loop Escalation Number
-            <div className="group relative">
-              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+          <label className="block text-xs sm:text-sm text-gray-600 mb-2 flex items-center gap-2">
+            <span className="break-words">Human-in-the-Loop Escalation Number</span>
+            <div className="group relative flex-shrink-0">
+              <Info className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 cursor-help" />
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
                 Phone number for escalating calls to human agents
               </div>
@@ -217,7 +237,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   type="text"
                   value={tempEscalation}
                   onChange={(e) => setTempEscalation(e.target.value)}
-                  className="flex-1 px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500"
+                  className="flex-1 px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base"
                   autoFocus
                 />
                 <motion.button
@@ -226,7 +246,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <Check className="w-5 h-5" />
+                  <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
                 <motion.button
                   onClick={handleCancelEscalation}
@@ -234,23 +254,23 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
               </>
             ) : (
               <>
-                <Phone className="w-5 h-5 text-gray-500" />
-                <span className="text-lg flex-1">{escalationNumber}</span>
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />
+                <span className="text-base sm:text-lg flex-1 break-all">{escalationNumber}</span>
                 <motion.button
                   onClick={() => {
                     setTempEscalation(escalationNumber);
                     setIsEditingEscalation(true);
                   }}
-                  className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100"
+                  className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 flex-shrink-0"
                   whileHover={{ scale: 1.05 }}
                   title="Edit escalation number"
                 >
-                  <Edit2 className="w-5 h-5" />
+                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
               </>
             )}
@@ -263,13 +283,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <h3 className="text-xl mb-3" style={{ color: accentColor }}>Official Outbound Calling Number</h3>
-        <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg">
-          <Phone className="w-6 h-6" style={{ color: accentColor }} />
-          <span className="text-xl">{outboundNumber}</span>
-          <span className="ml-auto text-sm text-gray-500">(Fixed)</span>
+        <h3 className="text-lg sm:text-xl mb-3" style={{ color: accentColor }}>Official Outbound Calling Number</h3>
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg">
+          <Phone className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" style={{ color: accentColor }} />
+          <span className="text-lg sm:text-xl break-all">{outboundNumber}</span>
+          <span className="ml-auto text-xs sm:text-sm text-gray-500">(Fixed)</span>
         </div>
       </motion.div>
 
@@ -278,19 +298,19 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl" style={{ color: accentColor }}>Calling Queue</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-0 mb-4">
+          <h3 className="text-lg sm:text-xl" style={{ color: accentColor }}>Calling Queue</h3>
           <motion.button
             onClick={() => setShowAddNumberModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg text-sm sm:text-base"
             style={{ backgroundColor: accentColor }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Add new number to queue"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             Add Number
           </motion.button>
         </div>
@@ -299,31 +319,30 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           {callingQueue.map((entry, index) => (
             <motion.div
               key={entry.id}
-              className={`p-4 rounded-lg border-2 transition-all ${
-                index === nextCallIndex 
-                  ? 'bg-blue-50 border-blue-500 shadow-md' 
+              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${index === nextCallIndex
+                  ? 'bg-blue-50 border-blue-500 shadow-md'
                   : 'bg-gray-50 border-gray-200'
-              }`}
+                }`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
             >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-lg">{entry.name}</h4>
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="text-base sm:text-lg break-words">{entry.name}</h4>
                     {index === nextCallIndex && (
-                      <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full">
+                      <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full whitespace-nowrap">
                         Next Call
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-600">{entry.phone}</p>
+                  <p className="text-sm sm:text-base text-gray-600 break-all">{entry.phone}</p>
                   {entry.notes && (
-                    <p className="text-sm text-gray-500 mt-1 italic">{entry.notes}</p>
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1 italic break-words">{entry.notes}</p>
                   )}
                 </div>
-                <span className="text-sm text-gray-400">#{index + 1}</span>
+                <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">#{index + 1}</span>
               </div>
             </motion.div>
           ))}
@@ -335,22 +354,22 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl mb-2" style={{ color: accentColor }}>Upload Documents</h3>
-            <p className="text-sm text-gray-600">Upload PDFs, Word docs, and other files for AI knowledge base</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:flex-1">
+            <h3 className="text-lg sm:text-xl mb-2" style={{ color: accentColor }}>Upload Documents</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Upload PDFs, Word docs, and other files for AI knowledge base</p>
           </div>
           <motion.button
             onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white text-sm sm:text-base"
             style={{ backgroundColor: accentColor }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Upload documents"
           >
-            <Upload className="w-5 h-5" />
+            <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
             Upload
           </motion.button>
         </div>
@@ -361,22 +380,22 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl mb-2" style={{ color: accentColor }}>Connect Database</h3>
-            <p className="text-sm text-gray-600">Connect PostgreSQL, Excel, CSV, or external data sources</p>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="w-full sm:flex-1">
+            <h3 className="text-lg sm:text-xl mb-2" style={{ color: accentColor }}>Connect Database</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Connect PostgreSQL, Excel, CSV, or external data sources</p>
           </div>
           <motion.button
             onClick={() => setShowDatabaseModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-white"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white text-sm sm:text-base"
             style={{ backgroundColor: accentColor }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             title="Connect database"
           >
-            <DatabaseIcon className="w-5 h-5" />
+            <DatabaseIcon className="w-4 h-4 sm:w-5 sm:h-5" />
             Connect
           </motion.button>
         </div>
@@ -387,21 +406,20 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white rounded-2xl shadow-lg p-6"
+        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
       >
-        <h3 className="text-xl mb-4" style={{ color: accentColor }}>AI Capabilities & Controls</h3>
+        <h3 className="text-lg sm:text-xl mb-4" style={{ color: accentColor }}>AI Capabilities & Controls</h3>
         <div className="space-y-4">
           {capabilities.map((capability) => (
-            <div key={capability.id} className="flex items-start justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex-1">
-                <h4 className="text-lg mb-1">{capability.label}</h4>
-                <p className="text-sm text-gray-600">{capability.description}</p>
+            <div key={capability.id} className="flex sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
+              <div className="flex-1 w-full sm:w-auto">
+                <h4 className="text-base sm:text-lg mb-1 break-words">{capability.label}</h4>
+                <p className="text-xs sm:text-sm text-gray-600 break-words">{capability.description}</p>
               </div>
               <motion.button
                 onClick={() => toggleCapability(capability.id)}
-                className={`relative w-14 h-7 rounded-full transition-colors ${
-                  capability.enabled ? 'bg-green-500' : 'bg-gray-300'
-                }`}
+                className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${capability.enabled ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
                 whileTap={{ scale: 0.95 }}
                 title={`Toggle ${capability.label}`}
               >

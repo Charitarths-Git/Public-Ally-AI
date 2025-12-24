@@ -15,6 +15,15 @@ interface DashboardProps {
   onLogout: () => void;
 }
 
+export interface SharedCallEntry {
+  id: string;
+  name: string;
+  phone: string;
+  notes?: string;
+  description?: string;
+  status: 'pending' | 'calling' | 'completed';
+}
+
 const navItems = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
   { id: 'calling-list', label: 'Calling List', icon: List, path: '/dashboard/calling-list' },
@@ -28,6 +37,15 @@ export default function Dashboard({ userSession, onLogout }: DashboardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  /* 🔴 SHARED CALLING QUEUE STATE (ADDED) */
+  const [callingQueue, setCallingQueue] = useState<SharedCallEntry[]>([
+    { id: '1', name: 'Rajesh Kumar', phone: '+91 98765 43210', notes: 'Water supply issue', status: 'pending' },
+    { id: '2', name: 'Priya Sharma', phone: '+91 98765 43211', notes: 'Road maintenance', status: 'pending' },
+    { id: '3', name: 'Amit Patel', phone: '+91 98765 43212', status: 'pending' },
+    { id: '4', name: 'Sneha Gupta', phone: '+91 98765 43213', status: 'pending' },
+    { id: '5', name: 'Vikram Singh', phone: '+91 98765 43214', status: 'pending' },
+  ]);
 
   const isGovernanceTheme = userSession.theme === 'governance';
   const bgGradient = isGovernanceTheme
@@ -204,7 +222,13 @@ export default function Dashboard({ userSession, onLogout }: DashboardProps) {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <HomePage userSession={userSession} accentColor={accentColor} secondaryColor={secondaryColor} />
+                    <HomePage
+                      userSession={userSession}
+                      accentColor={accentColor}
+                      secondaryColor={secondaryColor}
+                      callingQueue={callingQueue}
+                      setCallingQueue={setCallingQueue}
+                    />
                   </motion.div>
                 } 
               />
@@ -217,7 +241,11 @@ export default function Dashboard({ userSession, onLogout }: DashboardProps) {
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <CallingListPage accentColor={accentColor} />
+                    <CallingListPage
+                      accentColor={accentColor}
+                      callingQueue={callingQueue}
+                      setCallingQueue={setCallingQueue}
+                    />
                   </motion.div>
                 } 
               />

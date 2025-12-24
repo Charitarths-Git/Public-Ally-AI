@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Plus, GripVertical, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Plus, DatabaseIcon, GripVertical, Edit2, Trash2, Save, X } from 'lucide-react';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import Papa from 'papaparse';
 
 interface CallingListPageProps {
   accentColor: string;
@@ -160,6 +161,8 @@ function CallingListContent({ accentColor }: CallingListPageProps) {
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newDesc, setNewDesc] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const moveEntry = (dragIndex: number, hoverIndex: number) => {
     const dragEntry = entries[dragIndex];
@@ -194,15 +197,100 @@ function CallingListContent({ accentColor }: CallingListPageProps) {
     setEntries(entries.filter(entry => entry.id !== id));
   };
 
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: false,
+      transformHeader: (header) => header.trim().toLowerCase(),
+      complete: (results) => {
+        const newEntries: CallEntry[] = [];
+        
+        results.data.forEach((row: any) => {
+          // Try different possible column names for name, phone, and description/enquiry
+          const name = row.name || row.Name || row.NAME || 
+                      row.contact_name || row['contact name'] || '';
+          const phone = row.phone || row.Phone || row.PHONE || 
+                       row.phonenumber || row['phone number'] || 
+                       row.mobile || row.Mobile || row.number || '';
+          const description = row.description || row.Description || row.DESCRIPTION || 
+                            row.enquiry || row.Enquiry || row.ENQUIRY || 
+                            row.notes || row.Notes || row.query || '';
+
+          // Only add if at least name and phone are present
+          if (name.toString().trim() && phone.toString().trim()) {
+            newEntries.push({
+              id: `${Date.now()}-${Math.random()}`,
+              name: name.toString().trim(),
+              phone: phone.toString().trim(),
+              description: description ? description.toString().trim() : ''
+            });
+          }
+        });
+
+        if (newEntries.length > 0) {
+          setEntries([...newEntries, ...entries]);
+          alert(`Successfully added ${newEntries.length} entries from CSV`);
+        } else {
+          alert('No valid entries found in CSV. Please ensure your CSV has columns for name and phone number.');
+        }
+      },
+      error: (error) => {
+        alert(`Error parsing CSV: ${error.message}`);
+      }
+    });
+
+    // Reset file input
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+
+  const handleCSVButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Determine which entries to display
+  const displayedEntries = showAll ? entries : entries.slice(0, 5);
+  const hasMoreEntries = entries.length > 5;
+
   return (
     <div className="max-w-4xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        className="rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
-        <h1 className="text-3xl mb-2" style={{ color: accentColor }}>Calling List</h1>
-        <p className="text-gray-600">Manage and prioritize phone numbers for AI calling</p>
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl mb-2" style={{ color: accentColor }}>
+            Calling List
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600">
+            Manage and prioritize phone numbers for AI calling
+          </p>
+        </div>
+
+        <motion.button
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base"
+          style={{ backgroundColor: accentColor }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          title="Add CSV for bulk upload"
+          onClick={handleCSVButtonClick}
+        >
+          <DatabaseIcon className="w-4 h-4 sm:w-5 sm:h-5" />  
+          Add CSV
+        </motion.button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleCSVUpload}
+          className="hidden"
+        />
       </motion.div>
 
       {/* Add New Entry */}
@@ -263,7 +351,7 @@ function CallingListContent({ accentColor }: CallingListPageProps) {
           </p>
         </div>
 
-        {entries.map((entry, index) => (
+        {displayedEntries.map((entry, index) => (
           <CallEntryRow
             key={entry.id}
             entry={entry}
@@ -274,6 +362,21 @@ function CallingListContent({ accentColor }: CallingListPageProps) {
             accentColor={accentColor}
           />
         ))}
+
+        {hasMoreEntries && (
+          <motion.button
+            onClick={() => setShowAll(!showAll)}
+            className="w-full mt-4 px-4 py-3 border-2 rounded-lg text-sm sm:text-base font-medium transition-colors"
+            style={{ 
+              borderColor: accentColor,
+              color: accentColor 
+            }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {showAll ? 'Show Less' : `Show More (${entries.length - 5} more entries)`}
+          </motion.button>
+        )}
       </motion.div>
     </div>
   );

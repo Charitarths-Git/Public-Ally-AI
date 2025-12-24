@@ -28,14 +28,18 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
   });
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full px-4 sm:px-6 py-4">
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h1 className="text-3xl mb-2" style={{ color: accentColor }}>Databases</h1>
-        <p className="text-gray-600">View and manage connected databases</p>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
+          Databases
+        </h1>
+        <p className="text-sm text-gray-600">
+          View and manage connected databases
+        </p>
       </motion.div>
 
       {connectedDatabase ? (
@@ -43,67 +47,102 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-lg p-6"
+          className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6"
         >
-          <div className="flex items-center justify-between mb-6">
+          {/* Database Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
               <Database className="w-6 h-6" style={{ color: accentColor }} />
-              <h2 className="text-2xl" style={{ color: accentColor }}>{connectedDatabase.name}</h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {connectedDatabase.name}
+                </h2>
+                <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full mt-1 inline-block">
+                  Connected
+                </span>
+              </div>
             </div>
-            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-              Connected
-            </span>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b-2" style={{ borderColor: accentColor }}>
-                  {connectedDatabase.columns.map((col) => (
-                    <th key={col} className="text-left p-3 text-sm uppercase tracking-wider" style={{ color: accentColor }}>
-                      {col}
-                    </th>
+          {/* Table Container - This will scroll horizontally on small screens */}
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[800px]">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {connectedDatabase.columns.map((col) => (
+                      <th 
+                        key={col} 
+                        className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider whitespace-nowrap border-b border-gray-200"
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {connectedDatabase.rows.map((row, index) => (
+                    <motion.tr
+                      key={row.id}
+                      className="hover:bg-gray-50"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {row.id}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {row.name}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                        <span className="font-mono">{row.phone}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 max-w-[200px]">
+                        <div className="truncate" title={row.address}>
+                          {row.address}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                          row.status === 'Resolved'
+                            ? 'bg-green-100 text-green-800'
+                            : row.status === 'In Progress'
+                            ? 'bg-blue-100 text-blue-800'
+                            : row.status === 'Pending'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {row.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-medium">
+                        {row.assigned}
+                      </td>
+                    </motion.tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {connectedDatabase.rows.map((row, index) => (
-                  <motion.tr
-                    key={row.id}
-                    className="border-b hover:bg-gray-50 transition-colors"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    <td className="p-3">{row.id}</td>
-                    <td className="p-3">{row.name}</td>
-                    <td className="p-3">{row.phone}</td>
-                    <td className="p-3">{row.address}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        row.status === 'Resolved' ? 'bg-green-100 text-green-700' :
-                        row.status === 'In Progress' ? 'bg-blue-100 text-blue-700' :
-                        row.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td className="p-3">{row.assigned}</td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                </tbody>
+              </table>
+            </div>
           </div>
 
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={() => setShowConnectModal(true)}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Connect Another Database
-            </button>
+          {/* Footer */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6">
+            <div className="text-sm text-gray-500">
+              Showing {connectedDatabase.rows.length} records
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setShowConnectModal(true)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Connect Another Database
+              </button>
+              <button className="px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors" 
+                style={{ backgroundColor: accentColor }}>
+                Export Data
+              </button>
+            </div>
           </div>
         </motion.div>
       ) : (
@@ -111,19 +150,25 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-lg p-12 text-center"
+          className="bg-white rounded-xl border border-gray-200 p-8 text-center max-w-md mx-auto"
         >
-          <Database className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <h2 className="text-2xl mb-2 text-gray-700">No Database Connected</h2>
-          <p className="text-gray-500 mb-6">Connect a database to allow AI to access and manage records</p>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+            <Database className="w-8 h-8 text-gray-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            No Database Connected
+          </h2>
+          <p className="text-sm text-gray-600 mb-6">
+            Connect a database to allow AI to access and manage records
+          </p>
           <motion.button
             onClick={() => setShowConnectModal(true)}
-            className="px-6 py-3 text-white rounded-lg shadow-lg flex items-center gap-2 mx-auto"
+            className="px-5 py-2.5 text-sm font-medium text-white rounded-lg flex items-center gap-2 mx-auto"
             style={{ backgroundColor: accentColor }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4" />
             Connect Database
           </motion.button>
         </motion.div>

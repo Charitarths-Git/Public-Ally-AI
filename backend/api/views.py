@@ -1,13 +1,14 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view, action
+from rest_framework.decorators import api_view, action,parser_classes
 from rest_framework.response import Response
 from django.utils import timezone
 from django.conf import settings
 import uuid
 import os
-from .models import CallHistory, CallingSession
+from .models import CallHistory, CallingSession, KnowledgeDocument
 from .serializers import CallHistorySerializer, CallingSessionSerializer
 from .vapi_service import VAPIService
+from rest_framework.parsers import MultiPartParser, FormParser
 
 
 
@@ -47,7 +48,16 @@ def start_calling(request):
     
     return Response({'success': False, 'error': 'VAPI Call Failed'}, status=500)
 
-
+@api_view(['GET'])
+def get_documents(request):
+    """Returns all uploaded documents from the local DB"""
+    docs = KnowledgeDocument.objects.all().order_by('-created_at')
+    return Response([{
+        'id': d.vapi_file_id, 
+        'name': d.file_name, 
+        'type': d.file_name.split('.')[-1].upper()
+    } for d in docs])    
+    
 @api_view(['POST'])
 def stop_calling(request):
     """Stop the calling agent"""
@@ -80,30 +90,42 @@ def stop_calling(request):
 
 
 @api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
 def upload_document(request):
-    """Upload document endpoint (stub)"""
-    
-    print("\n" + "="*50)
-    print("📄 UPLOAD DOCUMENT REQUEST RECEIVED")
-    print("="*50)
-    print(f"📦 Request Data: {request.data}")
-    print(f"📁 Files: {request.FILES}")
-    
-    if request.FILES:
-        for key, file in request.FILES.items():
-            print(f"  - {key}: {file.name} ({file.size} bytes)")
-    
-    print("="*50 + "\n")
-    
-    return Response({
-        'success': True,
-        'message': 'Document upload endpoint - stub implementation',
-        'received_data': {
-            'files_count': len(request.FILES) if request.FILES else 0,
-            'form_data': dict(request.data)
-        }
-    }, status=status.HTTP_200_OK)
+    file_obj = request.FILES.get('file')
+    if not file_obj:
+        return Response({'success': False, 'error': 'No file provided'}, status=400)
 
+    service = VAPIService()
+    
+    # 1. Upload to Vapi
+    vapi_response = service.upload_file(file_obj)
+    if not vapi_response:
+        return Response({'success': False, 'error': 'Vapi upload failed'}, status=500)
+    
+    new_id = vapi_response.get('id')
+
+    # 2. Save to your local Database
+    KnowledgeDocument.objects.create(
+        vapi_file_id=new_id,
+        file_name=file_obj.name
+    )
+
+    # 3. Get all IDs currently in your DB
+    all_ids = list(KnowledgeDocument.objects.values_list('vapi_file_id', flat=True))
+    print(f"📚 All Document IDs for Vapi Tool Update: {all_ids}")
+
+    # 4. Update the Vapi Tool with the full, updated list
+    update_status = service.update_query_tool(all_ids)
+
+    if update_status:
+        return Response({
+            'success': True, 
+            'file_id': new_id,
+            'name': file_obj.name
+        })
+    
+    return Response({'success': False, 'error': 'DB saved but Vapi Tool sync failed'}, status=500)
 
 @api_view(['POST'])
 def connect_database(request):
@@ -182,3 +204,41 @@ def get_session_status(request):
         return Response({
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['DELETE'])
+def delete_document(request, file_id):
+    """
+    1. Delete document from local DB
+    2. Fetch remaining IDs
+    3. Update the Vapi Tool with the shorter list
+    """
+    try:
+        # 1. Find and delete from DB
+        doc = KnowledgeDocument.objects.get(vapi_file_id=file_id)
+        doc.delete()
+        print(f"🗑️ Deleted {file_id} from Database.")
+
+        # 2. Get the updated list of remaining IDs
+        service = VAPIService()
+        remaining_ids = list(KnowledgeDocument.objects.values_list('vapi_file_id', flat=True))
+        
+        # 3. Update Vapi Tool
+        print(f"🔄 Syncing updated list to Vapi Tool (Remaining: {len(remaining_ids)})")
+        sync_success = service.update_query_tool(remaining_ids)
+
+        if sync_success:
+            return Response({
+                'success': True, 
+                'message': 'Document removed from DB and Vapi memory'
+            })
+        else:
+            return Response({
+                'success': False, 
+                'error': 'Removed from DB but failed to sync with Vapi'
+            }, status=500)
+
+    except KnowledgeDocument.DoesNotExist:
+        return Response({'error': 'Document not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

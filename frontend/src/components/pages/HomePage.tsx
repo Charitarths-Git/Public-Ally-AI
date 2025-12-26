@@ -5,6 +5,7 @@ import type { UserSession } from '../../App';
 import AddNumberModal from '../modals/AddNumberModal';
 import UploadDocumentModal from '../modals/UploadDocumentModal';
 import ConnectDatabaseModal from '../modals/ConnectDatabaseModal';
+import axios from 'axios';
 
 interface HomePageProps {
   userSession: UserSession;
@@ -37,11 +38,53 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
+  const [isCalling, setIsCalling] = useState(false);
+  const [activeFileIds, setActiveFileIds] = useState<string[]>([]);
+
+  const triggerNextCall = async () => {
+  // 1. Find the next pending person
+  const nextPerson = callingQueue.find(entry => entry.status === 'pending');
+
+  if (!nextPerson) {
+    alert("No more pending calls in the queue!");
+    return;
+  }
+
+  setIsCalling(true);
+
+  // 2. Update local UI status to 'calling' immediately for feedback
+  setCallingQueue(prev => prev.map(entry => 
+    entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
+  ));
+
+  try {
+    // 3. Hit your Django endpoint
+    const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {
+      phone_number: nextPerson.phone.replace(/\s+/g, ''),
+      file_ids: activeFileIds // Remove spaces for VAPI
+    });
+
+    if (response.data.success) {
+      console.log('Call initiated successfully:', response.data.session_id);
+      // Optional: You could update the entry with the session_id here
+    }
+  } catch (error: any) {
+    console.error("VAPI/Django Error:", error.response?.data || error.message);
+    alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
+    
+    // Reset status to pending if it failed
+    setCallingQueue(prev => prev.map(entry => 
+      entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
+    ));
+  } finally {
+    setIsCalling(false);
+  }
+};
 
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([
-    { id: '1', name: 'Rajesh Kumar', phone: '+91 98765 43210', notes: 'Regarding water supply issue', status: 'pending' },
-    { id: '2', name: 'Priya Sharma', phone: '+91 98765 43211', notes: 'Complaint about road maintenance', status: 'pending' },
-    { id: '3', name: 'Amit Patel', phone: '+91 98765 43212', status: 'pending' },
+    { id: '1', name: 'Kartavya', phone: '+918668944955', notes: 'Regarding govt_schemes info', status: 'pending' },
+    { id: '2', name: 'Priya Sharma', phone: '+919876543211', notes: 'Complaint about road maintenance', status: 'pending' },
+    { id: '3', name: 'Amit Patel', phone: '+919876543212', notes: 'Info about Govt schemes', status: 'pending' },
   ]);
 
   const [capabilities, setCapabilities] = useState<AICapability[]>([
@@ -59,6 +102,10 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       setIsEditingName(false);
     }
   };
+
+  const handleUploadSuccess = (newFileId: string) => {
+  setActiveFileIds(prev => [...prev, newFileId]);
+};
 
   const handleCancelName = () => {
     setTempName(aiName);
@@ -112,17 +159,32 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         </div>
 
         <motion.button
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base"
-          style={{ backgroundColor: accentColor }}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          title="Start calling queued numbers"
-          onClick={() => {
-            console.log('Start Calling clicked');
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
+          style={{ 
+            // Changes color to gray if a call is in progress or no one is left to call
+            backgroundColor: isCalling || nextCallIndex === -1 ? '#9ca3af' : accentColor,
+            cursor: isCalling || nextCallIndex === -1 ? 'not-allowed' : 'pointer'
           }}
+          // Disables hover animation if the button is inactive
+          whileHover={(!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
+          whileTap={(!isCalling && nextCallIndex !== -1) ? { scale: 0.95 } : {}}
+          title={nextCallIndex === -1 ? "No pending numbers in queue" : "Start calling queued numbers"}
+          
+          // Disable the HTML button attribute
+          disabled={isCalling || nextCallIndex === -1}
+          
+          onClick={triggerNextCall}
         >
-          <Phone className="w-4 h-4 sm:w-5 sm:h-5" />  
-          Start Calling
+          {isCalling ? (
+            // Shows a loading spinner or pulsing icon during the API request
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+          ) : (
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+          )}
+          
+          <span>
+            {isCalling ? 'Connecting...' : nextCallIndex === -1 ? 'Queue Empty' : 'Start Calling'}
+          </span>
         </motion.button>
       </motion.div>
 
@@ -319,10 +381,15 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           {callingQueue.map((entry, index) => (
             <motion.div
               key={entry.id}
-              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${index === nextCallIndex
-                  ? 'bg-blue-50 border-blue-500 shadow-md'
-                  : 'bg-gray-50 border-gray-200'
-                }`}
+              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                entry.status === 'calling'
+                  ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200' // Highlighting the active call
+                  : entry.status === 'completed'
+                  ? 'bg-gray-50 border-green-200 opacity-75' // Styling for finished calls
+                  : index === nextCallIndex
+                  ? 'bg-blue-50 border-blue-500 shadow-sm' // Next call in line
+                  : 'bg-gray-50 border-gray-200' // Default pending
+              }`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -330,22 +397,43 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="text-base sm:text-lg break-words">{entry.name}</h4>
-                    {index === nextCallIndex && (
-                      <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full whitespace-nowrap">
+                    <h4 className="text-base sm:text-lg font-medium break-words">{entry.name}</h4>
+                    
+                    {/* Dynamic Status Badges */}
+                    {entry.status === 'calling' && (
+                      <span className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white text-[10px] sm:text-xs rounded-full uppercase tracking-wider animate-pulse font-bold">
+                        <Phone className="w-3 h-3" /> Calling...
+                      </span>
+                    )}
+                    
+                    {entry.status === 'completed' && (
+                      <span className="px-2 py-1 bg-green-500 text-white text-[10px] sm:text-xs rounded-full uppercase tracking-wider font-bold">
+                        Completed
+                      </span>
+                    )}
+
+                    {index === nextCallIndex && entry.status === 'pending' && (
+                      <span className="px-2 py-1 bg-blue-500 text-white text-[10px] sm:text-xs rounded-full whitespace-nowrap uppercase tracking-wider font-bold">
                         Next Call
                       </span>
                     )}
                   </div>
+                  
                   <p className="text-sm sm:text-base text-gray-600 break-all">{entry.phone}</p>
                   {entry.notes && (
                     <p className="text-xs sm:text-sm text-gray-500 mt-1 italic break-words">{entry.notes}</p>
                   )}
                 </div>
-                <span className="text-xs sm:text-sm text-gray-400 flex-shrink-0">#{index + 1}</span>
+                <span className="text-xs sm:text-sm text-gray-400 font-mono flex-shrink-0">#{index + 1}</span>
               </div>
             </motion.div>
           ))}
+          
+          {callingQueue.length === 0 && (
+            <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+              Queue is empty. Add a number to get started.
+            </div>
+          )}
         </div>
       </motion.div>
 

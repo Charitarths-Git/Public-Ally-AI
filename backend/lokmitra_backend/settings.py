@@ -15,10 +15,13 @@ import os
 from dotenv import load_dotenv
 
 # Load environment variables
-load_dotenv()
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
+
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -160,3 +163,15 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# VAPI AI Settings
+VAPI_API_KEY = os.getenv('VAPI_API_KEY')
+VAPI_BASE_URL = os.getenv('VAPI_BASE_URL', 'https://api.vapi.ai')
+VAPI_PHONE_NUMBER_ID = os.getenv('PHONE_NUMBER_ID')
+
+# Customer/Testing Phone (Optional)
+CUSTOMER_PHONE = os.getenv('CUSTOMER_PHONE')
+
+# Google Gemini API Key
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+

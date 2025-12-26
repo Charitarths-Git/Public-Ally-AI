@@ -27,7 +27,7 @@ class Command(BaseCommand):
             "type": "function",
             "function": {
                 "name": "get_government_scheme_info",
-                "description": "Returns official information about Indian government schemes",
+                "description": "Should be used whenever user asks any information related to the government schemes",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -45,7 +45,12 @@ class Command(BaseCommand):
             },
             "server": {
                 "url": server_url,
-                "timeoutSeconds": 20
+                "timeoutSeconds": 20,
+                "headers": {
+                    "Authorization": f"Bearer {os.getenv('SUPABASE_KEY')}",
+                    "apikey": os.getenv("SUPABASE_KEY"),
+                    "Content-Type": "application/json"
+                }
             }
         }
 

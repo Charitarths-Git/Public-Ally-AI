@@ -13,4 +13,6 @@ urlpatterns = [
     path('connect-database/', views.connect_database, name='connect-database'),
     path('add-number/', views.add_number, name='add-number'),
     path('session-status/', views.get_session_status, name='session-status'),
+    path('documents/', views.get_documents, name='get_documents'),
+    path('documents/<str:file_id>/', views.delete_document, name='delete_document'),
 ]

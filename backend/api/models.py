@@ -67,3 +67,15 @@ class KnowledgeDocument(models.Model):
 
     def __str__(self):
         return self.file_name
+
+class ConnectedDatabase(models.Model):
+    name = models.CharField(max_length=255)
+    source_type = models.CharField(max_length=50) # 'csv' or 'excel'
+    summary = models.TextField() # LLM-generated summary
+    columns = models.JSONField() # List of column names
+    vapi_tool_ids = models.JSONField(default=list) # Store the Vapi Tool IDs created
+    data = models.JSONField() # Store the actual row data for simplicity
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.source_type})"

@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOOL_ID = ["f2bf5e2e-0236-404d-8651-5892ff77b110","8be56882-fe70-4871-b7ec-ec6176ecfc5c"]
+TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c"]
 
 class VAPIService:
     def __init__(self):
@@ -27,8 +27,13 @@ class VAPIService:
             }
         }
 
-    def start_call(self, phone_number):
+    def start_call(self, phone_number,db_tool_ids):
         # We define the assistant inline for maximum flexibility
+        if db_tool_ids is None:
+            db_tool_ids = []
+
+        print(TOOL_ID + db_tool_ids)
+        
         payload = {
             "assistant": {
                 "name": "Sahayaki",
@@ -38,7 +43,7 @@ class VAPIService:
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4.1-nano",
-                    "toolIds": TOOL_ID,
+                    "toolIds": list(set(TOOL_ID + db_tool_ids)),
                     "messages": [
                         {
                             "role": "system",
@@ -85,7 +90,7 @@ class VAPIService:
         
 
     def update_query_tool(self, file_ids):
-        url = f"{self.base_url}/tool/{TOOL_ID[1]}"
+        url = f"{self.base_url}/tool/{TOOL_ID[0]}"
         
         payload = {
             "function": {
@@ -100,7 +105,7 @@ class VAPIService:
             "messages": [
                 {
                 "type": "request-start",
-                "blocking": False
+                "blocking": True
                 },
                 {
                 "type": "request-response-delayed",
@@ -130,3 +135,38 @@ class VAPIService:
         except Exception as e:
             print(f"Error syncing Tool: {e}")
             return False
+        
+
+    def create_db_function_tool(self, name, summary, columns, permission_type):
+            url = f"{self.base_url}/tool"
+            
+            # This is what the AI reads to decide whether to use this database
+            description = (
+                f"Use this tool for {permission_type} operations. "
+                f"Knowledge Base Summary: {summary}. "
+                f"Available columns/fields: {', '.join(columns)}."
+            )
+
+            payload = {
+                "type": "function",
+                "function": {
+                    "name": f"{name}",
+                    "description": description,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "search_query": {"type": "string", "description": "The specific value or ID to look for"},
+                            "target_column": {"type": "string", "description": "The column name to search within"}
+                        },
+                        "required": ["search_query"]
+                    }
+                },
+                "server": {
+                    "url": "https://phonematic-streamingly-jayda.ngrok-free.dev/api/execute-db-query/" 
+                }
+            }
+
+            res = requests.post(url, headers=self.headers, json=payload)
+            return res.json()
+    
+

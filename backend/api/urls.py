@@ -14,5 +14,8 @@ urlpatterns = [
     path('add-number/', views.add_number, name='add-number'),
     path('session-status/', views.get_session_status, name='session-status'),
     path('documents/', views.get_documents, name='get_documents'),
+    path('execute-db-query/', views.execute_db_query, name='execute_db_query'),
     path('documents/<str:file_id>/', views.delete_document, name='delete_document'),
+    path('delete-database/', views.delete_database, name='delete_database'),
+    path('get-databases/', views.get_connected_databases, name='get_connected_databases'),
 ]

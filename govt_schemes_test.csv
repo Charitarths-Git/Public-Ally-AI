@@ -1,0 +1,5 @@
+Scheme_ID,Scheme_Name,Benefit_Amount,Eligibility_Criteria,Department,Required_Documents
+PM-001,PM Kisan Samman Nidhi,6000 per year,Small and marginal farmers with landholdings,Ministry of Agriculture,Aadhaar Card;Land Records;Bank Passbook
+AY-202,Ayushman Bharat - PMJAY,5 Lakh per family,Low income families identified in SECC 2011,Ministry of Health,Ration Card;Aadhaar Card
+SSY-303,Sukanya Samriddhi Yojana,7.6% Interest Rate,Parents of girl child below 10 years,Department of Posts,Birth Certificate;Parent ID Proof
+AWA-404,PMAY - Gramin,1.2 Lakh for house,Families living in kutcha houses or homeless,Ministry of Rural Development,Aadhaar;Voter ID;MGNREGA Job Card

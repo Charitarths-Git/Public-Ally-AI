@@ -15,3 +15,7 @@ db.sqlite3
 dist/
 build/
 .next/
+
+govt_schemes_test.csv
+generate_csv.py 
+ngrok.exe

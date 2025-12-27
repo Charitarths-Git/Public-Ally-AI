@@ -43,7 +43,7 @@ class VAPIService:
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4.1-nano",
-                    "toolIds": list(set(TOOL_ID)),
+                    "toolIds": list(set(TOOL_ID+db_tool_ids)),
                     "messages": [
                         {
                             "role": "system",

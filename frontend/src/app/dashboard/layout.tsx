@@ -5,15 +5,23 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
 import { Home, List, Database, BookOpen, FileText, HelpCircle, LogOut, Menu, X } from 'lucide-react';
 import { UserSession } from '@/types';
+import CallNotification from '@/components/ui/CallNotification';
 
 const navItems = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
   { id: 'calling-list', label: 'Calling List', icon: List, path: '/dashboard/calling-list' },
   { id: 'databases', label: 'Databases', icon: Database, path: '/dashboard/databases' },
   { id: 'knowledge-base', label: 'Knowledge Base', icon: BookOpen, path: '/dashboard/knowledge-base' },
-  { id: 'results', label: 'Results of Queries', icon: FileText, path: '/dashboard/results' },
+  { id: 'results', label: 'Call History', icon: FileText, path: '/dashboard/results' },
   { id: 'how-to-use', label: 'How to Use', icon: HelpCircle, path: '/dashboard/how-to-use' },
 ];
+
+interface Notification {
+  id: string;
+  callId: string;
+  phoneNumber: string;
+  customerName?: string;
+}
 
 export default function DashboardLayout({
   children,
@@ -24,6 +32,10 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
+  
+  // Notification state
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [lastCallId, setLastCallId] = useState<string | null>(null);
 
   useEffect(() => {
     // Check for user session
@@ -34,6 +46,51 @@ export default function DashboardLayout({
       router.push('/');
     }
   }, [router]);
+
+  // Poll for new calls globally
+  useEffect(() => {
+    const fetchCallHistory = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/call-history/');
+        if (response.ok) {
+          const data = await response.json();
+          
+          if (data.length > 0) {
+            const latestCall = data[0];
+            
+            if (latestCall.call_id !== lastCallId) {
+              if (lastCallId !== null) {
+                // Show notification for new call
+                console.log('🔔 New call detected! Showing notification...');
+                const newNotification: Notification = {
+                  id: latestCall.call_id,
+                  callId: latestCall.call_id,
+                  phoneNumber: latestCall.phone_number,
+                  customerName: latestCall.customer_name
+                };
+                setNotifications(prev => [...prev, newNotification]);
+              }
+              setLastCallId(latestCall.call_id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching call history:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchCallHistory();
+    
+    // Poll every 5 seconds
+    const interval = setInterval(fetchCallHistory, 5000);
+    
+    return () => clearInterval(interval);
+  }, [lastCallId]);
+
+  const removeNotification = (id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('userSession');
@@ -52,7 +109,17 @@ export default function DashboardLayout({
   const accentColor = isGovernanceTheme ? '#001f3f' : '#1976D2';
 
   return (
-    <div className="min-h-screen flex" style={{ background: bgGradient }}>
+    <div className="min-h-screen flex overflow-x-hidden" style={{ background: bgGradient }}>
+      {/* Global Notifications */}
+      {notifications.map(notification => (
+        <CallNotification
+          key={notification.id}
+          callId={notification.callId}
+          phoneNumber={notification.phoneNumber}
+          customerName={notification.customerName}
+          onClose={() => removeNotification(notification.id)}
+        />
+      ))}
       {/* Sidebar - Desktop */}
       <motion.aside
         className="hidden lg:flex lg:flex-col w-72 bg-white shadow-2xl h-screen sticky top-0"
@@ -195,7 +262,7 @@ export default function DashboardLayout({
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden max-w-full">
         {/* Mobile Header */}
         <div className="lg:hidden bg-white shadow-md p-4 flex items-center justify-between">
           <button onClick={() => setSidebarOpen(true)}>
@@ -206,7 +273,7 @@ export default function DashboardLayout({
         </div>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-8">
+        <main className="flex-1 p-4 lg:p-8 overflow-x-hidden max-w-full">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 20 }}

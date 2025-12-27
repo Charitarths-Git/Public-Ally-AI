@@ -74,7 +74,7 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
   };
 
   return (
-    <div className="w-full px-4 sm:px-6 py-4 pb-20">
+    <div className="w-full max-w-full overflow-x-hidden px-4 sm:px-6 py-4 pb-20">
       {/* Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -108,7 +108,8 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
           <p className="text-gray-400 font-medium animate-pulse">Syncing datasets...</p>
         </div>
       ) : databases.length > 0 ? (
-        <div className="flex flex-col gap-10">
+        <div className="w-full max-w-full overflow-x-hidden">
+          <div className="flex flex-col gap-10 max-h-[calc(100vh-250px)] overflow-y-auto pr-2">
           {databases.map((db, dbIndex) => (
             <motion.div
               key={db.name}
@@ -117,17 +118,17 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
               transition={{ delay: dbIndex * 0.1 }}
               className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden"
             >
-              <div className="px-6 py-5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-white shadow-sm border border-gray-100">
-                    <Database className="w-6 h-6" style={{ color: accentColor }} />
+              <div className="px-4 sm:px-6 py-4 sm:py-5 bg-gray-50/50 border-b border-gray-100 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                  <div className="p-2 sm:p-3 rounded-xl bg-white shadow-sm border border-gray-100 flex-shrink-0">
+                    <Database className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: accentColor }} />
                   </div>
-                  <div>
-                    <h2 className="text-lg font-bold text-gray-900 tracking-tight">
+                  <div className="min-w-0 flex-1">
+                    <h2 className="text-base sm:text-lg font-bold text-gray-900 tracking-tight truncate">
                       {db.name.replace(/_/g, ' ').toUpperCase()}
                     </h2>
                     <div className="flex items-center gap-2 mt-1">
-                      <div className="w-2 h-2 rounded-full bg-green-500" />
+                      <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                       <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Active Store</span>
                     </div>
                   </div>
@@ -135,19 +136,21 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
                 {/* Updated Delete Button */}
                 <button 
                   onClick={() => handleDeleteDatabase(db.name)}
-                  className="p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                  className="p-2 sm:p-2.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all flex-shrink-0"
                   title="Disconnect Database"
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
+
+              {/* Table Container - Scrollable horizontally */}
+              <div className="w-full overflow-x-auto max-h-[350px] sm:max-h-[400px] overflow-y-auto">
+                <table className="w-full text-left border-collapse min-w-max">
+                  <thead className="sticky top-0 z-10 bg-white">
                     <tr className="bg-white border-b border-gray-100">
                       {db.columns.map((col) => (
-                        <th key={col} className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                        <th key={col} className="px-3 sm:px-6 py-3 sm:py-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] whitespace-nowrap">
                           {col.replace(/_/g, ' ')}
                         </th>
                       ))}
@@ -157,7 +160,7 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
                     {db.rows.map((row, rowIndex) => (
                       <tr key={rowIndex} className="group hover:bg-gray-50/50 transition-colors">
                         {db.columns.map((col) => (
-                          <td key={col} className="px-6 py-4 text-sm text-gray-600 font-medium whitespace-nowrap">
+                          <td key={col} className="px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm text-gray-600 font-medium whitespace-nowrap">
                             {row[col]?.toString() || "—"}
                           </td>
                         ))}
@@ -178,6 +181,7 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
               </div>
             </motion.div>
           ))}
+          </div>
         </div>
       ) : (
         <motion.div

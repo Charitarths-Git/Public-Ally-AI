@@ -18,4 +18,6 @@ urlpatterns = [
     path('documents/<str:file_id>/', views.delete_document, name='delete_document'),
     path('delete-database/', views.delete_database, name='delete_database'),
     path('get-databases/', views.get_connected_databases, name='get_connected_databases'),
+    path('vapi-webhook/', views.vapi_webhook, name='vapi_webhook'),
+    path('call-history/', views.get_call_history, name='get_call_history'),
 ]

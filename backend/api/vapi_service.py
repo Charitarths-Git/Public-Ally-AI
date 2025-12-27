@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c"]
+TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c","ffce1d40-0d91-4eca-aec3-8520ad1bf46d"]
 
 class VAPIService:
     def __init__(self):
@@ -43,11 +43,11 @@ class VAPIService:
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4.1-nano",
-                    "toolIds": list(set(TOOL_ID + db_tool_ids)),
+                    "toolIds": list(set(TOOL_ID)),
                     "messages": [
                         {
                             "role": "system",
-                            "content": f"You are an autonomous reasoning system. Context: {self.llm_context}. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information."
+                            "content": f"You are an autonomous reasoning system. Context: {self.llm_context}. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information. If user says thankyou then ask him for any other help if not then invoke the tool name end_call_tool to end the call"
                         }
                     ],
                     "temperature": 0.50,
@@ -58,6 +58,12 @@ class VAPIService:
                     "model": "gemini-2.0-flash",
                     "provider": "google"
                 },
+                # Server configuration for webhook
+                "server": {
+                    "url": os.getenv('WEBHOOK_URL', 'https://phonematic-streamingly-jayda.ngrok-free.dev/api/vapi-webhook/')
+                },
+                # Only receive end-of-call-report (not live transcript events)
+                "serverMessages": ["end-of-call-report"]
             },
             "phoneNumberId": self.phone_number_id,
             "customer": {"number": phone_number}

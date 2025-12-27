@@ -29,7 +29,7 @@ const navItems = [
   { id: 'calling-list', label: 'Calling List', icon: List, path: '/dashboard/calling-list' },
   { id: 'databases', label: 'Databases', icon: Database, path: '/dashboard/databases' },
   { id: 'knowledge-base', label: 'Knowledge Base', icon: BookOpen, path: '/dashboard/knowledge-base' },
-  { id: 'results', label: 'Results of Queries', icon: FileText, path: '/dashboard/results' },
+  { id: 'results', label: 'Call History', icon: FileText, path: '/dashboard/results' },
   { id: 'how-to-use', label: 'How to Use', icon: HelpCircle, path: '/dashboard/how-to-use' },
 ];
 

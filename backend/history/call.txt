@@ -1,0 +1,38 @@
+Call ID: 019b624c-8042-7eef-b03c-aafe7e0595bf
+Phone Number: +918668944955
+Status: queued
+Ended Reason: assistant-ended-call
+Duration: 144.632 seconds
+Cost: $0.1842
+Started At: 2025-12-28T00:12:28.381Z
+Ended At: 2025-12-28T00:14:53.013Z
+Recording URL: https://storage.vapi.ai/019b624c-8042-7eef-b03c-aafe7e0595bf-1766880895614-89480688-e0e3-4337-870a-38b184291519-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b624c-8042-7eef-b03c-aafe7e0595bf-1766880895614-c4eac274-0db3-4388-8452-695217eeb54c-stereo.wav
+
+================================================================================
+SUMMARY
+================================================================================
+The user struggled to articulate their requests, initially asking what the AI could tell them, then inquiring about "jail mango" and "project examples," which the AI couldn't comprehend. After a final unclear question about "zero to one," the user instructed the AI to end the call.
+
+================================================================================
+TRANSCRIPT
+================================================================================
+AI: Namaste I am Sahayaki how can I help you?
+User: Uh hello Saiji.
+AI: Hello, how can I assist you today?
+User: मुझे किस बारे में बता सकते हो? तो मैं क्या-क्या बताया? हेलो हेलो हेलो
+AI: मैं आपकी सहायता के लिए यहां हूं आप किस विषय में जानकारी चाहते हैं कृपया बताएं ताकि मैं आपको सही जानकारी दे सकूं
+User: Tum mujhe
+AI: क्या आप कृपया अपने प्रश्न को थोड़ा स्पष्ट कर सकते हैं? मैं आपकी किस प्रकार मदद कर सकता हूं।
+User: Um government mujhe jail mango ke bare mein batao.
+User: क्यों? यहां पर प्रोजेक्ट के बारे में कुछ एग्जांपल प्रोजेक्ट्स।
+AI: मुझे खेद है मैं
+AI: माफ कीजिए मैं आपकी बात को पूरी तरह से समझ नहीं पाया यदि आप जेल जाने से संबंधित जानकारी या प्रक्रिया के बारे में जानना चाहते हैं तो कृपया स्पष्ट रूप से बताएं मैं आपकी मदद करने के लिए यहां हूं
+User: नी धन्यवाद. Thank you. हेलो. हेलो.
+AI: क्या आप कोई और सहायता चाहते हैं? यदि नहीं तो मैं कॉल समाप्त कर रही हूं।
+User: Can you generate a zero to one?
+AI: If you are asking for a mathematical or conceptual explanation of zero to one.
+User: Nothing's nothing. Nati. You can end the call.
+AI: If you are in some other side
+
+================================================================================

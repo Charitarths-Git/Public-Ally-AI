@@ -22,8 +22,21 @@ import requests
 
 load_dotenv()
 
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.3)
-structured_llm = llm.with_structured_output(ToolMetadata)
+# Lazy-load LLM to avoid initialization errors at startup when credentials aren't available
+_llm = None
+_structured_llm = None
+
+def get_llm():
+    """Get or initialize the LLM instance"""
+    global _llm, _structured_llm
+    if _llm is None:
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash", 
+            temperature=0.3,
+            google_api_key=os.getenv("GEMINI_API_KEY")
+        )
+        _structured_llm = _llm.with_structured_output(ToolMetadata)
+    return _llm, _structured_llm
 
 class CallHistoryViewSet(viewsets.ModelViewSet):
     """ViewSet for Call History"""
@@ -168,6 +181,7 @@ def connect_database(request):
 
     # 2. Generate Structured Output using LangChain
     try:
+        _, structured_llm = get_llm()
         ai_response = structured_llm.invoke(
             f"Analyze this dataset (Filename: {file_obj.name}). "
             f"Columns: {columns}. Sample Data: {sample}"
@@ -424,3 +438,190 @@ def delete_database(request):
         })
     except ConnectedDatabase.DoesNotExist:
         return Response({"error": "Database not found"}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_call_history(request):
+    """
+    Retrieves all call history records from the database.
+    Used by the frontend to display call history in the history section.
+    """
+    try:
+        # Fetch all call history records
+        call_histories = CallHistory.objects.all().order_by('-created_at')
+        
+        # Serialize the data
+        serializer = CallHistorySerializer(call_histories, many=True)
+        
+        print(f"📡 Fetched {len(serializer.data)} call history records.")
+        return Response(serializer.data, status=200)
+    
+    except Exception as e:
+        print(f"❌ Error fetching call history: {str(e)}")
+        return Response({"error": "Failed to retrieve call history"}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def vapi_webhook(request):
+    """
+    Webhook endpoint to receive events from Vapi.
+    Specifically handles end-of-call-report to extract and print transcripts.
+    """
+    
+    print("\n" + "="*80)
+    print("📞 VAPI WEBHOOK RECEIVED")
+    print("="*80)
+    print(f"🔍 Full Request Data: {request.data}")
+    print(f"🔍 Request Headers: {dict(request.headers)}")
+    print("="*80)
+    
+    try:
+        # Extract the message from the webhook payload
+        message = request.data.get('message', {})
+        message_type = message.get('type')
+        
+        print(f"📨 Message Type: {message_type}")
+        
+        # Handle end-of-call-report
+        if message_type == 'end-of-call-report':
+            # Extract call details
+            call = message.get('call', {})
+            call_id = call.get('id', 'Unknown')
+            call_status = call.get('status', 'ended')
+            ended_reason = message.get('endedReason', 'Unknown')
+            
+            # Extract transcript and other details from message level
+            transcript = message.get('transcript', 'No transcript available')
+            summary = message.get('summary', '')
+            recording_url = message.get('recordingUrl', '')
+            stereo_recording_url = message.get('stereoRecordingUrl', '')
+            
+            # Extract timing information
+            started_at_str = message.get('startedAt', '')
+            ended_at_str = message.get('endedAt', '')
+            duration_seconds = message.get('durationSeconds', 0)
+            
+            # Extract customer info
+            customer = call.get('customer', {})
+            phone_number = customer.get('number', 'Unknown')
+            
+            # Extract cost information
+            cost = message.get('cost', 0)
+            
+            print(f"\n🆔 Call ID: {call_id}")
+            print(f"📊 Status: {call_status}")
+            print(f"🏁 Ended Reason: {ended_reason}")
+            print(f"📞 Phone Number: {phone_number}")
+            print(f"⏱️ Duration: {duration_seconds} seconds")
+            print(f"💰 Cost: ${cost}")
+            
+            print("\n" + "="*80)
+            print("📝 CALL TRANSCRIPT")
+            print("="*80)
+            print(transcript)
+            print("="*80)
+            
+            print(f"\n🎙️ Recording URL: {recording_url}")
+            print(f"🎙️ Stereo Recording URL: {stereo_recording_url}")
+            print("="*80 + "\n")
+            
+            # Save transcript to backend/history/call.txt file
+            try:
+                history_dir = os.path.join(settings.BASE_DIR, 'history')
+                os.makedirs(history_dir, exist_ok=True)
+                
+                transcript_file_path = os.path.join(history_dir, 'call.txt')
+                with open(transcript_file_path, 'w', encoding='utf-8') as f:
+                    f.write(f"Call ID: {call_id}\n")
+                    f.write(f"Phone Number: {phone_number}\n")
+                    f.write(f"Status: {call_status}\n")
+                    f.write(f"Ended Reason: {ended_reason}\n")
+                    f.write(f"Duration: {duration_seconds} seconds\n")
+                    f.write(f"Cost: ${cost}\n")
+                    f.write(f"Started At: {started_at_str}\n")
+                    f.write(f"Ended At: {ended_at_str}\n")
+                    f.write(f"Recording URL: {recording_url}\n")
+                    f.write(f"Stereo Recording URL: {stereo_recording_url}\n")
+                    f.write("\n" + "="*80 + "\n")
+                    f.write("SUMMARY\n")
+                    f.write("="*80 + "\n")
+                    f.write(summary + "\n")
+                    f.write("\n" + "="*80 + "\n")
+                    f.write("TRANSCRIPT\n")
+                    f.write("="*80 + "\n")
+                    f.write(transcript)
+                    f.write("\n" + "="*80 + "\n")
+                
+                print(f"💾 Transcript saved to: {transcript_file_path}")
+            except Exception as file_error:
+                print(f"⚠️ Could not save transcript to file: {file_error}")
+            
+            # Save to database
+            try:
+                from datetime import datetime
+                
+                # Parse datetime strings
+                started_at = None
+                ended_at = None
+                if started_at_str:
+                    try:
+                        started_at = datetime.fromisoformat(started_at_str.replace('Z', '+00:00'))
+                    except:
+                        pass
+                if ended_at_str:
+                    try:
+                        ended_at = datetime.fromisoformat(ended_at_str.replace('Z', '+00:00'))
+                    except:
+                        pass
+                
+                # Create or update call history
+                call_history, created = CallHistory.objects.update_or_create(
+                    call_id=call_id,
+                    defaults={
+                        'phone_number': phone_number,
+                        'status': 'ended',
+                        'duration': int(duration_seconds),
+                        'started_at': started_at or timezone.now(),
+                        'ended_at': ended_at or timezone.now(),
+                        'summary': summary,
+                        'transcript': transcript,
+                        'recording_url': recording_url or stereo_recording_url,
+                    }
+                )
+                
+                action = "Created" if created else "Updated"
+                print(f"✅ {action} call history in database for call {call_id}")
+                
+            except Exception as db_error:
+                print(f"⚠️ Could not save to database: {db_error}")
+            
+            # Update session if exists
+            try:
+                session = CallingSession.objects.filter(session_id=call_id).first()
+                if session:
+                    print(f"✅ Found session for call {call_id}")
+            except Exception as e:
+                print(f"⚠️ Could not find session: {e}")
+            
+            return Response({
+                'success': True,
+                'message': 'Transcript received and printed'
+            }, status=200)
+        
+        else:
+            # Handle other message types if needed
+            print(f"ℹ️ Received message type: {message_type}")
+            return Response({
+                'success': True,
+                'message': f'Received {message_type}'
+            }, status=200)
+    
+    except Exception as e:
+        print(f"❌ Error processing webhook: {str(e)}")
+        print(f"📦 Raw payload: {request.data}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)

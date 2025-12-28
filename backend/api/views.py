@@ -858,66 +858,54 @@ def execute_sheet_write(request):
     function_name = call.get('function', {}).get('name', '')
     args = call.get('function', {}).get('arguments', {})
 
-    # 1. DEFENSIVE LOOKUP: Try ID first, then Name
+    # 1. DEFENSIVE LOOKUP
     db = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
-    
     if not db:
-        # Fallback: Strip 'log_' and match by name
         clean_name = function_name.replace('log_', '').replace('write_', '')
         db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
 
-    # 2. THE GUARD CLAUSE: Prevent 'NoneType' crash
     if db is None:
-        print(f"❌ DB Lookup Failed for Tool ID: {vapi_tool_id}")
         return Response({
-            "results": [{
-                "toolCallId": tool_call_id,
-                "result": f"Backend Error: No database linked to {function_name}."
-            }]
+            "results": [{"toolCallId": tool_call_id, "result": "Error: DB not found."}]
         }, status=200)
 
-    # 3. GET GOOGLE DETAILS
-    # connection_details could be None in old records, use .get() safely
     details = db.connection_details or {}
     spreadsheet_id = details.get('spreadsheet_id')
 
-    if not spreadsheet_id:
-        return Response({
-            "results": [{
-                "toolCallId": tool_call_id,
-                "result": "Error: Spreadsheet ID missing in connection details."
-            }]
-        }, status=200)
-
     try:
-        # 4. AUTHENTICATION
+        # 2. PREPARE DATA
+        # Create a dictionary for Django and a list for Google Sheets
+        new_entry_dict = {col: str(args.get(col, "")) for col in db.columns}
+        new_row_list = [new_entry_dict[col] for col in db.columns]
+
+        # 3. GOOGLE SHEETS WRITE (External)
         base_dir = settings.BASE_DIR
         json_path = os.path.join(base_dir, 'service_account.json')
-        
-        if not os.path.exists(json_path):
-            raise FileNotFoundError("service_account.json missing in project root.")
-
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
         client = gspread.authorize(creds)
         
-        # 5. WRITE EXECUTION
         sheet = client.open_by_key(spreadsheet_id).sheet1
-        
-        # Ensure values match the columns in the correct order
-        new_row = [str(args.get(col, "")) for col in db.columns]
-        sheet.append_row(new_row)
+        sheet.append_row(new_row_list)
 
-        print(f"✅ Success: Appended row to {db.name}")
+        # 4. DJANGO DATABASE UPDATE (Internal Sync)
+        # We append the new dictionary to the existing 'data' list
+        current_data = list(db.data) # Cast to list to be safe
+        current_data.append(new_entry_dict)
+        db.data = current_data
+        db.save() # This commits the new row to your Django DB
+
+        print(f"✅ Synced: Appended to GSheet and Django for {db.name}")
+
         return Response({
-            "results": [{"toolCallId": tool_call_id, "result": "Success! I have recorded that information."}]
+            "results": [{
+                "toolCallId": tool_call_id, 
+                "result": "I have successfully recorded your entry and updated the system."
+            }]
         }, status=200)
 
     except Exception as e:
-        print(f"❌ GSheet Write Error: {str(e)}")
+        print(f"❌ Sync Error: {str(e)}")
         return Response({
-            "results": [{
-                "toolCallId": tool_call_id,
-                "result": f"Execution Error: {str(e)}"
-            }]
+            "results": [{"toolCallId": tool_call_id, "result": f"Sync Error: {str(e)}"}]
         }, status=200)

@@ -1,38 +1,36 @@
-Call ID: 019b624c-8042-7eef-b03c-aafe7e0595bf
-Phone Number: +918668944955
+Call ID: 019b6546-3afe-7447-a689-0f4c6d33a0b5
+Phone Number: +917206015146
 Status: queued
 Ended Reason: assistant-ended-call
-Duration: 144.632 seconds
-Cost: $0.1842
-Started At: 2025-12-28T00:12:28.381Z
-Ended At: 2025-12-28T00:14:53.013Z
-Recording URL: https://storage.vapi.ai/019b624c-8042-7eef-b03c-aafe7e0595bf-1766880895614-89480688-e0e3-4337-870a-38b184291519-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019b624c-8042-7eef-b03c-aafe7e0595bf-1766880895614-c4eac274-0db3-4388-8452-695217eeb54c-stereo.wav
+Duration: 100.014 seconds
+Cost: $0.1211
+Started At: 2025-12-28T14:04:29.942Z
+Ended At: 2025-12-28T14:06:09.956Z
+Recording URL: https://storage.vapi.ai/019b6546-3afe-7447-a689-0f4c6d33a0b5-1766930772569-04b0f7aa-0a24-4bf0-a299-2f6ea23a0fea-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b6546-3afe-7447-a689-0f4c6d33a0b5-1766930772570-55f38f83-c6cc-4eb8-adfb-fe5bf0e91d59-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user struggled to articulate their requests, initially asking what the AI could tell them, then inquiring about "jail mango" and "project examples," which the AI couldn't comprehend. After a final unclear question about "zero to one," the user instructed the AI to end the call.
+The user, Benjamin, contacted the AI assistant Sahayaki to schedule an appointment. He requested the appointment for January 1, 2026, at 10 a.m., which the AI successfully confirmed and booked.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
 AI: Namaste I am Sahayaki how can I help you?
-User: Uh hello Saiji.
-AI: Hello, how can I assist you today?
-User: मुझे किस बारे में बता सकते हो? तो मैं क्या-क्या बताया? हेलो हेलो हेलो
-AI: मैं आपकी सहायता के लिए यहां हूं आप किस विषय में जानकारी चाहते हैं कृपया बताएं ताकि मैं आपको सही जानकारी दे सकूं
-User: Tum mujhe
-AI: क्या आप कृपया अपने प्रश्न को थोड़ा स्पष्ट कर सकते हैं? मैं आपकी किस प्रकार मदद कर सकता हूं।
-User: Um government mujhe jail mango ke bare mein batao.
-User: क्यों? यहां पर प्रोजेक्ट के बारे में कुछ एग्जांपल प्रोजेक्ट्स।
-AI: मुझे खेद है मैं
-AI: माफ कीजिए मैं आपकी बात को पूरी तरह से समझ नहीं पाया यदि आप जेल जाने से संबंधित जानकारी या प्रक्रिया के बारे में जानना चाहते हैं तो कृपया स्पष्ट रूप से बताएं मैं आपकी मदद करने के लिए यहां हूं
-User: नी धन्यवाद. Thank you. हेलो. हेलो.
-AI: क्या आप कोई और सहायता चाहते हैं? यदि नहीं तो मैं कॉल समाप्त कर रही हूं।
-User: Can you generate a zero to one?
-AI: If you are asking for a mathematical or conceptual explanation of zero to one.
-User: Nothing's nothing. Nati. You can end the call.
-AI: If you are in some other side
+User: Hello Sahiki, could you please
+AI: It seems your message was cut off. How can I assist you today?
+User: Hello.
+AI: Hello, is there any information or assistance you need today?
+User: Can you please help me schedule an appointment?
+AI: Certainly, please provide me with the details of the appointment you'd like to schedule, such as your name, preferred date and time, and any other relevant information.
+User: Okay, my name is Benjamin.
+AI: Thank you, Benjamin. Could you please specify the date and time slot you prefer for the appointment?
+User: Uh date would be first January. 2026 and time would be 10 a.m.
+AI: Uh thank you for the information.
+AI: Your appointment has been scheduled for January 1, 2026 at 10 a.m. Is there anything else I can assist you with?
+User: Thank you, psyche.
+AI: You're welcome. Would you like any other assistance or can I end the call now?
+User: the call.
 
 ================================================================================

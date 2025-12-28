@@ -10,3 +10,5 @@ pandas
 langchain-google-genai
 rapidfuzz
 openpyxl
+gspread 
+oauth2client

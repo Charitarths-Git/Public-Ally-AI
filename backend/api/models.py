@@ -76,6 +76,7 @@ class ConnectedDatabase(models.Model):
     vapi_tool_ids = models.JSONField(default=list) # Store the Vapi Tool IDs created
     data = models.JSONField() # Store the actual row data for simplicity
     created_at = models.DateTimeField(auto_now_add=True)
+    connection_details = models.JSONField(default=dict) # e.g., {"spreadsheet_id": "xyz"}
 
     def __str__(self):
         return f"{self.name} ({self.source_type})"

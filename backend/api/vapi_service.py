@@ -175,4 +175,51 @@ class VAPIService:
             res = requests.post(url, headers=self.headers, json=payload)
             return res.json()
     
+    def create_supabase_sql_tool(self, name, summary, columns, edge_function_url):
+        """
+        Creates a Vapi tool specifically for the Supabase Edge Function.
+        """
+        url = f"{self.base_url}/tool"
+        
+        description = (
+            f"Use this tool to query the {name} SQL database. "
+            f"Summary: {summary}. "
+            f"Columns: {', '.join(columns)}."
+        )
 
+        payload = {
+            "type": "function",
+            "function": {
+                "name": f"query_{name}",
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_query": {"type": "string", "description": "The SQL search term or ILIKE pattern"},
+                    },
+                    "required": ["search_query"]
+                }
+            },
+            "server": {
+                "url": edge_function_url  # Points directly to Supabase Edge Function
+            }
+        }
+
+        res = requests.post(url, headers=self.headers, json=payload)
+        return res.json()
+
+    def create_generic_tool(self, payload):
+        """
+        Creates any Vapi-native tool (Google Sheets, etc.) using a custom payload.
+        """
+        url = f"{self.base_url}/tool"
+        
+        # We send the payload as-is because we've already 
+        # structured it correctly in the view.
+        res = requests.post(url, headers=self.headers, json=payload)
+        
+        if res.status_code in [200, 201]:
+            return res.json()
+        else:
+            print(f"❌ Vapi Generic Tool Error: {res.text}")
+            return {"error": res.text}

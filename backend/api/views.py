@@ -8,9 +8,11 @@ from django.utils import timezone
 from django.conf import settings
 from django.db import transaction
 import uuid
+import psycopg2
 import os
 from rapidfuzz import process, fuzz
 from .structured_output import ToolMetadata
+from .utils import deploy_supabase_edge_logic, fetch_google_sheet_as_df
 from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase
 from .serializers import CallHistorySerializer, CallingSessionSerializer
 from .vapi_service import VAPIService
@@ -19,6 +21,8 @@ import pandas as pd
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 import requests
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 load_dotenv()
 
@@ -341,6 +345,7 @@ def execute_db_query(request):
     
     call = tool_calls[0]
     tool_call_id = call.get('id') 
+    vapi_tool_id = call.get('toolId') # The unique ID Vapi assigned to the tool
     function_name = call.get('function', {}).get('name', '')
     
     args = call.get('function', {}).get('arguments', {})
@@ -351,21 +356,37 @@ def execute_db_query(request):
             args = {}
 
     search_query = str(args.get('search_query', '')).strip()
-    db_name = function_name.replace('read_', '').replace('write_', '')
+
+    # 1. CLEAN THE NAME: Strip search_, read_, and write_
+    # This ensures "search_delhi_jal_board" becomes "delhi_jal_board"
+    db_name_cleaned = function_name.replace('search_', '').replace('read_', '').replace('write_', '')
     
-    print(f"🔎 Processing {db_name} for query: {search_query}")
+    print(f"🔎 Vapi Tool ID: {vapi_tool_id} | Function: {function_name} | Target: {db_name_cleaned}")
 
     try:
-        db_record = ConnectedDatabase.objects.get(name__iexact=db_name)
-        rows = db_record.data
+        # 2. MATCHING STRATEGY:
+        # First try matching the Tool ID (Best Practice)
+        db_record = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
+        
+        # If not found by ID, match by cleaned name
+        if not db_record:
+            db_record = ConnectedDatabase.objects.filter(name__iexact=db_name_cleaned).first()
 
+        if not db_record:
+            print(f"❌ Database match failed for: {db_name_cleaned}")
+            raise ConnectedDatabase.DoesNotExist
+
+        rows = db_record.data
         final_data = None
 
+        # 3. SEARCH LOGIC
+        # Exact Match Check
         for row in rows:
-            if str(list(row.values())[0]).lower() == search_query.lower():
+            if any(str(val).lower() == search_query.lower() for val in row.values()):
                 final_data = {"results": [row], "match_type": "exact"}
                 break
 
+        # Fuzzy Match Check (if exact match fails)
         if not final_data:
             row_strings = [" ".join(str(v) for v in r.values()) for r in rows]
             matches = process.extract(search_query, row_strings, scorer=fuzz.partial_ratio, limit=3, score_cutoff=60)
@@ -381,14 +402,14 @@ def execute_db_query(request):
             ]
         }
 
-        print(f"✅ Sending formatted response for ID: {tool_call_id}")
+        print(f"✅ Success: Found {len(final_data.get('results', []))} results")
         return Response(vapi_response, status=200)
 
     except ConnectedDatabase.DoesNotExist:
         return Response({
             "results": [{
                 "toolCallId": tool_call_id,
-                "result": {"error": f"Database {db_name} not found"}
+                "result": {"error": f"Database '{db_name_cleaned}' not found in Sahayaki system."}
             }]
         }, status=200)
     
@@ -625,3 +646,278 @@ def vapi_webhook(request):
             'success': False,
             'error': str(e)
         }, status=500)
+    
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def connect_supabase(request):
+    # Extract data from the request
+    user_token = request.data.get('access_token')
+    host = request.data.get('host')
+    database = request.data.get('database')
+    username = request.data.get('username')
+    password = request.data.get('password')
+    port = request.data.get('port')
+    table_name = request.data.get('table_name')
+    can_read = request.data.get('can_read') == 'true'
+
+    try:
+        # 1. VERIFY & ANALYZE: Connect to Supabase to fetch column metadata
+        conn = psycopg2.connect(
+            host=host,
+            database=database,
+            user=username,
+            password=password,
+            port=port,
+            connect_timeout=5
+        )
+        
+        # Get columns and a small sample for Gemini analysis
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT 3")
+        columns = [desc[0] for desc in cursor.description]
+        sample_rows = cursor.fetchall()
+        df_sample = pd.DataFrame(sample_rows, columns=columns)
+        sample_data_string = df_sample.to_string()
+        cursor.close()
+        conn.close()
+
+        print(f"📡 Connected to Supabase table: {table_name}")
+
+        # 2. GENERATE SEMANTIC SUMMARY: Structured Output using LangChain & Gemini
+        try:
+            _, structured_llm = get_llm()
+            ai_response = structured_llm.invoke(
+                f"Analyze this SQL table (Table: {table_name}). "
+                f"Columns: {columns}. Sample Data: {sample_data_string}"
+            )
+            
+            db_tool_name = ai_response.tool_name
+            db_summary = ai_response.summary
+            
+        except Exception as e:
+            print(f"⚠️ LangChain Structured Output failed: {e}")
+            db_tool_name = f"query_{table_name.lower()}"
+            db_summary = f"SQL Database containing: {', '.join(columns)}"
+
+        print(f"🛠️ AI Tool Name: {db_tool_name}")
+        print(f"📝 AI Summary: {db_summary}")
+
+        # 3. DEPLOY: Trigger Supabase Edge Function Registration
+        # We pass the user's token to deploy the logic directly to their project
+        edge_function_url = deploy_supabase_edge_logic(request.data, user_token)
+        print(f"🚀 Edge Function deployed at: {edge_function_url}")
+
+        # 4. CREATE TOOLS: Register the tool in Vapi pointing to the Edge Function
+        service = VAPIService()
+        tool_ids = []
+
+        if can_read:
+            # We use the new Edge Function URL as the server endpoint for this tool
+            tool = service.create_supabase_sql_tool(
+                name=db_tool_name, 
+                summary=db_summary, 
+                columns=columns, 
+                edge_function_url=edge_function_url
+            )
+            if tool and 'id' in tool:
+                print(f"✅ Created Vapi SQL tool with ID: {tool['id']}")
+                tool_ids.append(tool['id'])
+
+        # 5. SAVE TO DJANGO DB: Store the connection metadata
+        ConnectedDatabase.objects.create(
+            name=db_tool_name,
+            source_type="SUPABASE",
+            summary=db_summary,
+            columns=columns,
+            vapi_tool_ids=tool_ids,
+            # We store a "Live Connection" marker instead of raw data for SQL
+            data=[{"status": "Live SQL Connection", "table": table_name, "endpoint": edge_function_url}],
+        )
+
+        return Response({
+            'success': True,
+            'tool_name': db_tool_name,
+            'summary': db_summary,
+            'tools_created': tool_ids,
+            'edge_url': edge_function_url
+        })
+
+    except Exception as e:
+        print(f"❌ Supabase Integration Error: {str(e)}")
+        return Response({"error": str(e)}, status=500)
+    
+
+@api_view(['POST'])
+def connect_google_sheets(request):
+    data = request.data
+    sheet_url = data.get('sheet_url')
+    db_name = data.get('name', 'Google_Sheet_DB')
+    can_read = data.get('can_read') == 'true'
+    can_write = data.get('can_write') == 'true'
+
+    # 1. Extract Spreadsheet ID
+    match = re.search(r"/d/([a-zA-Z0-9-_]+)", sheet_url)
+    if not match:
+        return Response({"error": "Invalid Google Sheet URL format."}, status=400)
+    
+    spreadsheet_id = match.group(1)
+    vapi_service = VAPIService()
+    tool_ids = []
+    columns = []
+    df_data = []
+
+    try:
+        # Fetch initial data for LLM analysis
+        df, columns = fetch_google_sheet_as_df(spreadsheet_id)
+        sample_data = df.head(5).to_string()
+        _, structured_llm = get_llm()
+
+        # 2. READ LOGIC: Analysis for Information Retrieval
+        if can_read:
+            read_prompt = (
+                f"Identify the KNOWLEDGE BASE purpose of this sheet: {db_name}\n"
+                f"Columns: {columns}\nSample: {sample_data}\n"
+                "Create a description explaining what information can be RETRIEVED from here."
+            )
+            read_analysis = structured_llm.invoke(read_prompt)
+            read_desc = read_analysis.summary
+            
+            df_data = df.to_dict(orient='records')
+            # The search tool name always keeps the 'search_' prefix for the backend router
+            read_tool = vapi_service.create_db_function_tool(
+                f"search_{db_name.lower().replace(' ', '_')}", 
+                f"SEARCH TOOL: {read_desc}", 
+                columns, 
+                "read"
+            )
+            if 'id' in read_tool:
+                tool_ids.append(read_tool['id'])
+
+        # 3. WRITE LOGIC: Specialized Analysis for Data Entry
+        if can_write:
+            write_prompt = (
+                f"This is a DATA ENTRY tool for the sheet: {db_name}\n"
+                f"Columns: {columns}\nSample: {sample_data}\n"
+                "Explain to the Voice AI exactly what it needs to ask the user to fill these columns. "
+                "Include instructions on being brief and capturing specific details."
+            )
+            write_analysis = structured_llm.invoke(write_prompt)
+            
+            # Use the AI to generate a clean, action-oriented function name
+            write_func_name = f"log_{db_name.lower().replace(' ', '_')}"
+            write_desc = f"APPEND TOOL: {write_analysis.summary}"
+
+            write_payload = {
+                "type": "function",
+                "function": {
+                    "name": write_func_name,
+                    "description": write_desc,
+                    "parameters": {
+                        "type": "object",
+                        "properties": {col: {"type": "string", "description": f"Caller's {col}"} for col in columns},
+                        "required": columns[:2] # Heuristic: Name and Description/Issue usually first
+                    }
+                },
+                "server": {
+                    "url": "https://phonematic-streamingly-jayda.ngrok-free.dev/api/execute-sheet_write/"
+                }
+            }
+            write_tool = vapi_service.create_generic_tool(write_payload)
+            if 'id' in write_tool:
+                tool_ids.append(write_tool['id'])
+
+        # 4. STORE: Save to Django
+        ConnectedDatabase.objects.create(
+            name=db_name,
+            source_type="googlesheets",
+            summary=f"Read: {read_desc if can_read else 'N/A'} | Write: {write_desc if can_write else 'N/A'}",
+            columns=columns,
+            vapi_tool_ids=tool_ids,
+            data=df_data,
+            connection_details={"spreadsheet_id": spreadsheet_id}
+        )
+
+        return Response({"success": True, "message": f"Successfully linked {db_name}", "tools": tool_ids})
+
+    except Exception as e:
+        print(f"❌ Google Sheets Sync Error: {str(e)}")
+        return Response({"error": str(e)}, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def execute_sheet_write(request):
+    message = request.data.get('message', {})
+    tool_calls = message.get('toolCalls', [])
+    
+    if not tool_calls:
+        return Response({"error": "No tool call provided"}, status=400)
+    
+    call = tool_calls[0]
+    tool_call_id = call.get('id')
+    vapi_tool_id = call.get('toolId')
+    function_name = call.get('function', {}).get('name', '')
+    args = call.get('function', {}).get('arguments', {})
+
+    # 1. DEFENSIVE LOOKUP: Try ID first, then Name
+    db = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
+    
+    if not db:
+        # Fallback: Strip 'log_' and match by name
+        clean_name = function_name.replace('log_', '').replace('write_', '')
+        db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
+
+    # 2. THE GUARD CLAUSE: Prevent 'NoneType' crash
+    if db is None:
+        print(f"❌ DB Lookup Failed for Tool ID: {vapi_tool_id}")
+        return Response({
+            "results": [{
+                "toolCallId": tool_call_id,
+                "result": f"Backend Error: No database linked to {function_name}."
+            }]
+        }, status=200)
+
+    # 3. GET GOOGLE DETAILS
+    # connection_details could be None in old records, use .get() safely
+    details = db.connection_details or {}
+    spreadsheet_id = details.get('spreadsheet_id')
+
+    if not spreadsheet_id:
+        return Response({
+            "results": [{
+                "toolCallId": tool_call_id,
+                "result": "Error: Spreadsheet ID missing in connection details."
+            }]
+        }, status=200)
+
+    try:
+        # 4. AUTHENTICATION
+        base_dir = settings.BASE_DIR
+        json_path = os.path.join(base_dir, 'service_account.json')
+        
+        if not os.path.exists(json_path):
+            raise FileNotFoundError("service_account.json missing in project root.")
+
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
+        client = gspread.authorize(creds)
+        
+        # 5. WRITE EXECUTION
+        sheet = client.open_by_key(spreadsheet_id).sheet1
+        
+        # Ensure values match the columns in the correct order
+        new_row = [str(args.get(col, "")) for col in db.columns]
+        sheet.append_row(new_row)
+
+        print(f"✅ Success: Appended row to {db.name}")
+        return Response({
+            "results": [{"toolCallId": tool_call_id, "result": "Success! I have recorded that information."}]
+        }, status=200)
+
+    except Exception as e:
+        print(f"❌ GSheet Write Error: {str(e)}")
+        return Response({
+            "results": [{
+                "toolCallId": tool_call_id,
+                "result": f"Execution Error: {str(e)}"
+            }]
+        }, status=200)

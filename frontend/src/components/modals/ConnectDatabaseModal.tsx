@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { X, Database, Upload, Loader2, CheckCircle2, FileType } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, Database, Upload, Loader2, CheckCircle2, Link, Globe, Table, Key, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 import axios from 'axios';
 
 interface ConnectDatabaseModalProps {
@@ -9,30 +9,44 @@ interface ConnectDatabaseModalProps {
   accentColor: string;
 }
 
-type DataSourceType = 'postgresql' | 'excel' | 'csv' | 'external';
+type DataSourceType = 'supabase' | 'excel' | 'csv' | 'googlesheets';
 
 export default function ConnectDatabaseModal({ isOpen, onClose, accentColor }: ConnectDatabaseModalProps) {
-  const [sourceType, setSourceType] = useState<DataSourceType>('postgresql');
+  const [sourceType, setSourceType] = useState<DataSourceType>('supabase');
+  
+  // Permissions Logic
   const [canRead, setCanRead] = useState(true);
-  const [canWrite, setCanWrite] = useState(true);
+  const [canWrite, setCanWrite] = useState(false);
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Form states
+  // Form states for Supabase
+  const [dbDisplayName, setDbDisplayName] = useState(''); 
   const [host, setHost] = useState('');
   const [port, setPort] = useState('5432');
-  const [database, setDatabase] = useState('');
-  const [username, setUsername] = useState('');
+  const [database, setDatabase] = useState('postgres');
+  const [username, setUsername] = useState('postgres');
   const [password, setPassword] = useState('');
-  const [externalLink, setExternalLink] = useState('');
-  const [externalUsername, setExternalUsername] = useState('');
-  const [externalPassword, setExternalPassword] = useState('');
+  const [tableName, setTableName] = useState('');
+  const [supabaseAccessToken, setSupabaseAccessToken] = useState('');
+
+  // Form states for Google Sheets
+  const [sheetUrl, setSheetUrl] = useState('');
 
   const handleConnect = async () => {
+    // 1. Validation Logic
+    if (sourceType === 'supabase' && (!host || !database || !username || !password || !tableName || !supabaseAccessToken)) {
+      alert("Please fill in all Supabase connection details and your Access Token.");
+      return;
+    }
+    if (sourceType === 'googlesheets' && !sheetUrl) {
+      alert("Please provide the Google Sheet URL.");
+      return;
+    }
     if ((sourceType === 'csv' || sourceType === 'excel') && !selectedFile) {
-      alert("Please upload a file first");
+      alert("Please upload a file.");
       return;
     }
 
@@ -40,31 +54,45 @@ export default function ConnectDatabaseModal({ isOpen, onClose, accentColor }: C
     formData.append('source_type', sourceType);
     formData.append('can_read', String(canRead));
     formData.append('can_write', String(canWrite));
+    formData.append('name', dbDisplayName || (selectedFile ? selectedFile.name : `Dataset_${Date.now()}`));
 
-    // Use the state variable instead of querySelector
-    if (selectedFile) {
+    // 2. Routing to correct Endpoint
+    let endpoint = 'http://127.0.0.1:8000/api/connect-database/'; // Default for Files
+
+    if (sourceType === 'supabase') {
+      endpoint = 'http://127.0.0.1:8000/api/connect-supabase/';
+      formData.append('host', host);
+      formData.append('database', database);
+      formData.append('username', username);
+      formData.append('password', password);
+      formData.append('port', port);
+      formData.append('table_name', tableName);
+      formData.append('access_token', supabaseAccessToken);
+    } 
+    else if (sourceType === 'googlesheets') {
+      endpoint = 'http://127.0.0.1:8000/api/connect-google-sheets/';
+      formData.append('sheet_url', sheetUrl);
+    } 
+    else if (selectedFile) {
       formData.append('file', selectedFile);
     }
 
     setIsProcessing(true);
-    setStatusMessage('Analyzing data with Gemini AI...');
+    setStatusMessage(`Provisioning ${sourceType.toUpperCase()} Infrastructure...`);
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/connect-database/', formData);
+      const response = await axios.post(endpoint, formData);
       
       if (response.data.success) {
-        setStatusMessage('Success! Database connected.');
+        setStatusMessage('Success! Sahayaki is now Synced.');
         setTimeout(() => {
           onClose();
           resetForm();
         }, 1500);
       }
     } catch (err: any) {
-      console.error("Connection failed", err);
-      const errorMsg = err.response?.status === 429 
-        ? "AI is currently busy. Please wait a moment." 
-        : "Failed to connect. Please check your data.";
-      alert(errorMsg);
+      console.error("Connection error:", err);
+      alert(err.response?.data?.error || "Failed to establish connection. Check console for details.");
     } finally {
       setIsProcessing(false);
       setStatusMessage('');
@@ -72,202 +100,193 @@ export default function ConnectDatabaseModal({ isOpen, onClose, accentColor }: C
   };
 
   const resetForm = () => {
-    setHost('');
-    setPort('5432');
-    setDatabase('');
-    setUsername('');
-    setPassword('');
-    setExternalLink('');
-    setExternalUsername('');
-    setExternalPassword('');
-    setSelectedFile(null); // Reset file selection
-    setIsProcessing(false);
-    setStatusMessage('');
-  };
-
-  const handleClose = () => {
-    if (isProcessing) return;
-    resetForm();
-    onClose();
+    setDbDisplayName(''); setHost(''); setPort('5432'); setDatabase('postgres');
+    setUsername('postgres'); setPassword(''); setTableName('');
+    setSupabaseAccessToken(''); setSheetUrl(''); setSelectedFile(null);
+    setCanWrite(false); // Reset to read-only for safety
   };
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          <motion.div
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
+        <motion.div 
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
+          <motion.div 
+            className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto relative border border-gray-100"
+            initial={{ scale: 0.95, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto relative"
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* LOADING OVERLAY */}
-              <AnimatePresence>
-                {isProcessing && (
-                  <motion.div 
-                    className="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm rounded-2xl"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    <Loader2 className="w-12 h-12 animate-spin mb-4" style={{ color: accentColor }} />
-                    <p className="text-lg font-bold text-gray-800">{statusMessage}</p>
-                    <p className="text-sm text-gray-500 mt-2">Syncing with Sahayaki Knowledge Base...</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+            {/* Syncing Overlay */}
+            {isProcessing && (
+              <div className="absolute inset-0 bg-white/95 z-50 flex flex-col items-center justify-center rounded-3xl text-center p-10">
+                <Loader2 className="w-14 h-14 animate-spin mb-6" style={{ color: accentColor }} />
+                <p className="text-xl font-black text-gray-900">{statusMessage}</p>
+                <p className="text-sm text-gray-400 mt-2 font-medium italic px-10">
+                  Initializing Cloud Functions and Vapi dynamic tool definitions...
+                </p>
+              </div>
+            )}
 
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl flex items-center gap-2 font-bold" style={{ color: accentColor }}>
-                  <Database className="w-6 h-6" />
-                  Connect Database
+            {/* Modal Header */}
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-2xl font-black flex items-center gap-3" style={{ color: accentColor }}>
+                  <Database className="w-7 h-7" /> Link Data Source
                 </h2>
-                <button onClick={handleClose} disabled={isProcessing} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                  <X className="w-6 h-6" />
-                </button>
+                <p className="text-sm text-gray-500 font-medium mt-1">Empower Sahayaki with live external data</p>
               </div>
+              <X className="w-6 h-6 cursor-pointer text-gray-300 hover:text-gray-900 transition-colors" onClick={onClose} />
+            </div>
 
-              {/* Source Type Selection */}
-              <div className="mb-6">
-                <label className="block text-sm font-semibold text-gray-700 mb-3">Select Data Source Type</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {['postgresql', 'excel', 'csv', 'external'].map((type) => (
-                    <button
-                      key={type}
-                      disabled={isProcessing}
-                      onClick={() => { setSourceType(type as DataSourceType); setSelectedFile(null); }}
-                      className={`p-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                        sourceType === type ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-100 bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      {type.toUpperCase()}
-                    </button>
-                  ))}
+            {/* Infrastructure Selector */}
+            <div className="mb-8">
+              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4 block">Select Environment</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { id: 'supabase', label: 'Supabase', icon: Globe },
+                  { id: 'excel', label: 'Excel', icon: Table },
+                  { id: 'csv', label: 'CSV', icon: FileSpreadsheet },
+                  { id: 'googlesheets', label: 'Google Sheets', icon: Link }
+                ].map((type) => (
+                  <button
+                    key={type.id}
+                    onClick={() => { setSourceType(type.id as DataSourceType); setSelectedFile(null); }}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
+                      sourceType === type.id 
+                        ? 'bg-gray-900 border-gray-900 text-white shadow-xl shadow-gray-200' 
+                        : 'bg-gray-50 border-transparent text-gray-400 hover:border-gray-200'
+                    }`}
+                  >
+                    <type.icon className="w-5 h-5" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter">{type.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dataset Identifier */}
+            <div className="mb-6">
+              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">Dataset Display Name</label>
+              <input 
+                type="text" placeholder="e.g. MCD_Garbage_Schedule" 
+                value={dbDisplayName} onChange={(e) => setDbDisplayName(e.target.value)} 
+                className="w-full mt-1 px-5 py-3 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-gray-900 outline-none font-bold text-gray-700" 
+              />
+            </div>
+
+            {/* --- SOURCE SPECIFIC FIELDS --- */}
+
+            {/* Supabase Flow */}
+            {sourceType === 'supabase' && (
+              <div className="space-y-4 mb-8">
+                <div className="p-5 bg-blue-50/50 rounded-3xl border border-blue-100">
+                  <label className="text-[10px] font-black uppercase text-blue-600 flex items-center gap-2 mb-2">
+                    <Key className="w-4 h-4" /> Management Access Token
+                  </label>
+                  <input 
+                    type="password" placeholder="sbp_xxxxxxxxxxxx" 
+                    value={supabaseAccessToken} onChange={(e) => setSupabaseAccessToken(e.target.value)} 
+                    className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm shadow-sm" 
+                  />
+                  <p className="text-[9px] text-blue-400 font-bold uppercase mt-2">Used to deploy Edge Functions to your project.</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" placeholder="Host (db.xxx.supabase.co)" value={host} onChange={(e) => setHost(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
+                  <input type="text" placeholder="Database (usually postgres)" value={database} onChange={(e) => setDatabase(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" placeholder="User (usually postgres)" value={username} onChange={(e) => setUsername(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
+                  <input type="password" placeholder="DB Password" value={password} onChange={(e) => setPassword(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" placeholder="Port (5432)" value={port} onChange={(e) => setPort(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
+                  <input type="text" placeholder="Target Table (public.schemes)" value={tableName} onChange={(e) => setTableName(e.target.value)} className="px-4 py-3 bg-gray-50 rounded-xl outline-none font-bold text-sm" />
                 </div>
               </div>
+            )}
 
-              {/* Dynamic Upload Area for CSV/Excel */}
-              {(sourceType === 'excel' || sourceType === 'csv') && (
-                <motion.div className="mb-6">
-                  <label className="block cursor-pointer">
-                    <motion.div 
-                      animate={selectedFile ? { 
-                        borderColor: accentColor,
-                        backgroundColor: `${accentColor}10`,
-                        scale: [1, 1.01, 1] 
-                      } : {}}
-                      transition={selectedFile ? { repeat: Infinity, duration: 2 } : {}}
-                      className={`border-2 border-dashed rounded-2xl p-10 text-center transition-all ${
-                        selectedFile ? 'border-solid' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                    >
-                      {selectedFile ? (
-                        <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-4 shadow-lg">
-                            <CheckCircle2 className="w-10 h-10 text-white" />
-                          </div>
-                          <p className="text-blue-700 font-bold text-lg mb-1">File Uploaded</p>
-                          <p className="text-sm text-blue-600 font-medium px-4 py-1 bg-blue-100 rounded-full">
-                            {selectedFile.name}
-                          </p>
-                          <button 
-                            type="button"
-                            onClick={(e) => { e.preventDefault(); setSelectedFile(null); }}
-                            className="mt-4 text-xs text-red-500 font-bold uppercase tracking-wider hover:underline"
-                          >
-                            Remove File
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <Upload className="w-8 h-8 text-gray-400" />
-                          </div>
-                          <p className="text-gray-700 font-bold">Choose a {sourceType.toUpperCase()} file</p>
-                          <p className="text-sm text-gray-400 mt-1">Maximum size 10MB</p>
-                        </>
-                      )}
-                    </motion.div>
-                    <input
-                      type="file"
-                      disabled={isProcessing}
-                      onChange={(e) => { if(e.target.files?.[0]) setSelectedFile(e.target.files[0]); }}
-                      className="hidden"
-                      accept={sourceType === 'excel' ? '.xlsx,.xls' : '.csv'}
-                    />
+            {/* Google Sheets Flow */}
+            {sourceType === 'googlesheets' && (
+              <div className="mb-8 space-y-4">
+                <div className="p-5 bg-green-50/50 rounded-3xl border border-green-100">
+                  <label className="text-[10px] font-black uppercase text-green-600 flex items-center gap-2 mb-2">
+                    <Link className="w-4 h-4" /> Google Spreadsheet URL
                   </label>
-                </motion.div>
-              )}
+                  <input 
+                    type="url" placeholder="https://docs.google.com/spreadsheets/d/..." 
+                    value={sheetUrl} onChange={(e) => setSheetUrl(e.target.value)} 
+                    className="w-full px-4 py-3 bg-white rounded-xl outline-none font-bold text-sm shadow-sm" 
+                  />
+                  <p className="text-[9px] text-green-400 font-bold uppercase mt-2">Ensure the sheet is shared with 'Anyone with the link can view'.</p>
+                </div>
+              </div>
+            )}
 
-              {/* PostgreSQL Fields */}
-              {sourceType === 'postgresql' && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4 mb-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase">Host</label>
-                      <input type="text" value={host} onChange={(e) => setHost(e.target.value)} disabled={isProcessing} className="w-full px-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none" />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-gray-500 uppercase">Port</label>
-                      <input type="text" value={port} onChange={(e) => setPort(e.target.value)} disabled={isProcessing} className="w-full px-4 py-2 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-blue-500 outline-none" />
-                    </div>
+            {/* File Upload Flow */}
+            {(sourceType === 'excel' || sourceType === 'csv') && (
+              <div className="mb-8">
+                <label className="block cursor-pointer">
+                  <div className="border-4 border-dashed border-gray-50 bg-gray-50 rounded-3xl p-12 text-center transition-all hover:border-gray-200">
+                    <Upload className="w-10 h-10 mx-auto text-gray-300 mb-4" />
+                    <p className="text-xs font-black uppercase text-gray-900">{selectedFile ? selectedFile.name : `Drop ${sourceType.toUpperCase()} Dataset here`}</p>
+                    {selectedFile && <button onClick={(e) => {e.preventDefault(); setSelectedFile(null);}} className="text-[9px] font-black text-red-500 uppercase mt-2 underline">Change File</button>}
                   </div>
-                  {/* ... Rest of SQL fields ... */}
-                </motion.div>
-              )}
+                  <input type="file" className="hidden" onChange={(e) => setSelectedFile(e.target.files?.[0] || null)} accept={sourceType === 'excel' ? '.xlsx,.xls' : '.csv'} />
+                </label>
+              </div>
+            )}
 
-              {/* Permissions */}
-              <div className="mb-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">AI Permissions</h3>
-                <div className="space-y-4">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${canRead ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
-                      {canRead && <CheckCircle2 className="w-4 h-4 text-white" />}
-                    </div>
-                    <input type="checkbox" checked={canRead} onChange={(e) => setCanRead(e.target.checked)} disabled={isProcessing} className="hidden" />
-                    <span className="text-sm font-medium text-gray-700">Allow AI to read and retrieve data</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${canWrite ? 'bg-blue-600 border-blue-600' : 'border-gray-300'}`}>
-                      {canWrite && <CheckCircle2 className="w-4 h-4 text-white" />}
-                    </div>
-                    <input type="checkbox" checked={canWrite} onChange={(e) => setCanWrite(e.target.checked)} disabled={isProcessing} className="hidden" />
-                    <span className="text-sm font-medium text-gray-700">Allow AI to edit and add records</span>
-                  </label>
+            {/* Agentic Permissions (Now handles Sheets Write Access) */}
+            <div className="bg-gray-50 rounded-3xl p-6 mb-8 border border-gray-100">
+              <h4 className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4" /> Intelligence Permissions
+              </h4>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-700">Read Access</span>
+                    <span className="text-[10px] text-gray-400 font-medium">Allow Sahayaki to query this for knowledge.</span>
+                  </div>
+                  <input type="checkbox" checked={canRead} onChange={(e) => setCanRead(e.target.checked)} className="w-5 h-5 accent-gray-900" />
+                </div>
+                <div className={`flex items-center justify-between transition-opacity ${sourceType === 'googlesheets' ? 'opacity-100' : 'opacity-30'}`}>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-gray-700">Write Access (Append)</span>
+                    <span className="text-[10px] text-gray-400 font-medium italic">Vapi native tool for ticketing/logs.</span>
+                  </div>
+                  <input 
+                    type="checkbox" 
+                    disabled={sourceType !== 'googlesheets'} 
+                    checked={canWrite} 
+                    onChange={(e) => setCanWrite(e.target.checked)} 
+                    className="w-5 h-5 accent-gray-900" 
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleClose}
-                  disabled={isProcessing}
-                  className="flex-1 px-4 py-4 border-2 border-gray-100 rounded-2xl font-bold text-gray-400 hover:bg-gray-50 transition-colors"
-                >
-                  CANCEL
-                </button>
-                <motion.button
-                  onClick={handleConnect}
-                  disabled={isProcessing}
-                  className="flex-1 px-4 py-4 text-white rounded-2xl font-bold shadow-lg flex items-center justify-center gap-2"
-                  style={{ backgroundColor: accentColor }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ESTABLISH CONNECTION'}
-                </motion.button>
-              </div>
-            </motion.div>
+            {/* Final Action Buttons */}
+            <div className="flex gap-4">
+              <button 
+                onClick={onClose} 
+                className="flex-1 py-5 text-[11px] font-black uppercase text-gray-400 hover:bg-gray-50 rounded-2xl tracking-[0.2em] transition-all"
+              >
+                Discard
+              </button>
+              <button 
+                onClick={handleConnect} 
+                disabled={isProcessing}
+                className="flex-[2] py-5 text-[11px] font-black uppercase text-white rounded-2xl shadow-xl active:scale-95 transition-all flex items-center justify-center gap-3"
+                style={{ backgroundColor: accentColor }}
+              >
+                {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sync with Sahayaki'}
+              </button>
+            </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );

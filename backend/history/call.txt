@@ -1,29 +1,35 @@
-Call ID: 019b655a-d48d-733f-9310-2ee2050310a6
-Phone Number: +917206015146
+Call ID: 019b69ee-ea51-7ff7-867c-99bd35673763
+Phone Number: +918668944955
 Status: queued
-Ended Reason: customer-ended-call
-Duration: 54.415 seconds
-Cost: $0.066
-Started At: 2025-12-28T14:26:59.094Z
-Ended At: 2025-12-28T14:27:53.509Z
-Recording URL: https://storage.vapi.ai/019b655a-d48d-733f-9310-2ee2050310a6-1766932076099-d0afe4bc-c548-44eb-9d6a-f5623b3701df-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019b655a-d48d-733f-9310-2ee2050310a6-1766932076099-2fde77f8-49ea-4050-bf73-243a091cadba-stereo.wav
+Ended Reason: assistant-ended-call
+Duration: 165.243 seconds
+Cost: $0.1905
+Started At: 2025-12-29T11:47:25.410Z
+Ended At: 2025-12-29T11:50:10.653Z
+Recording URL: https://storage.vapi.ai/019b69ee-ea51-7ff7-867c-99bd35673763-1767009013484-d0e111eb-bced-469a-8dd8-4a6eebdb553e-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b69ee-ea51-7ff7-867c-99bd35673763-1767009013484-5372d036-6d21-432a-b59e-35e6869b80c4-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user called to book an appointment. After a brief clarification regarding the initial request, the AI successfully booked the appointment for the user.
+The user called to complain about the current pattern of Class 12 board exams, suggesting it is incorrect and needs modification. They recommended increasing the number of questions, improving visualization quality, and reducing the syllabus. The AI noted these suggestions, and the user proceeded with submitting them.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
 AI: Namaste I am Sahayaki how can I help you?
-User: Hello Sai, could you please
-AI: It seems your message was cut off. How can I assist you today?
-User: help me book an appointment. psyche could you help me book an appointment?
-AI: I couldn't find any existing appointment details for psyche. Would you like to specify the type of appointment or provide more details so I can assist you further?
-User: I want you to book my appointment.
-AI: Your appointment has been booked successfully. Is there anything else I can assist you with?
-User: Thank you.
+User: Um actually I have a complaint regarding the government of India.
+AI: Please provide me with the details of your complaint such as the department involved and a brief description of the issue so I can assist you further.
+User: and have to raise the complaint. Uh department is go education of India. And the description is the uh pattern of the board exams of class 12 was incorrect and I recommend to change.
+User: change eight and modify a new pattern with better quality of visualization.
+AI: Thank you for your suggestion. If you would like to formally request a change or modification to the exam pattern, please specify the new pattern details or any specific improvements you recommend.
+User: I request to increase the number of questions.
+AI: Uh.
+User: and also the quality also reduce the syllabus.
+AI: Thank you for your suggestions. I will note down your recommendations to increase the number of questions and reduce the syllabus for better quality. Would you like to add any other details or proceed with submitting the suggestions?
+User: Yeah, thank you. I will proceed with this submission. Hello. Hello.
+AI: Uh, yeah.
+AI: You're welcome. If you need any further assistance, feel free to ask. Otherwise, I will end the call now. Have a great day.
+User: Um.
 
 ================================================================================

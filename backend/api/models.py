@@ -44,6 +44,7 @@ class CallingSession(models.Model):
     """Model to track calling sessions"""
     
     session_id = models.CharField(max_length=255, unique=True)
+    assistant_id = models.CharField(max_length=255, blank=True, null=True, help_text='Vapi Assistant ID for inbound calls')
     is_active = models.BooleanField(default=False)
     started_at = models.DateTimeField(default=timezone.now)
     ended_at = models.DateTimeField(null=True, blank=True)

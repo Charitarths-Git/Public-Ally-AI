@@ -15,7 +15,7 @@ from .structured_output import ToolMetadata
 from .utils import deploy_supabase_edge_logic, fetch_google_sheet_as_df
 from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase
 from .serializers import CallHistorySerializer, CallingSessionSerializer
-from .vapi_service import VAPIService
+from .vapi_service import VAPIService, sanitize_function_name
 from rest_framework.parsers import MultiPartParser, FormParser
 import pandas as pd
 from dotenv import load_dotenv
@@ -59,31 +59,101 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def start_calling(request):
-    # Extract phone number from the POST request body
-    phone_number = request.data.get('phone_number')
+    """
+    Start a calling session by creating a permanent Vapi assistant for inbound calls.
+    This assistant will handle incoming calls to the configured phone number.
+    """
+    print("\n" + "="*50)
+    print("🚀 START SESSION REQUEST RECEIVED")
+    print("="*50)
+    print(f"📦 Request Data: {request.data}")
+    print("="*50 + "\n")
     
-    if not phone_number:
-        return Response({'success': False, 'error': 'phone_number is required'}, status=400)
-
-    all_db_records = ConnectedDatabase.objects.all()
-
-    dynamic_tool_ids = []
-    for record in all_db_records:
-        dynamic_tool_ids.extend(record.vapi_tool_ids)
-
-    service = VAPIService()
-    call_response = service.start_call(phone_number, dynamic_tool_ids)
-
-    
-    if call_response:
-        # Create a session in your database to track the call
+    try:
+        # Check if there's already an active session
+        active_session = CallingSession.objects.filter(is_active=True).first()
+        if active_session:
+            print(f"⚠️ Active session already exists: {active_session.session_id}")
+            return Response({
+                'success': False,
+                'error': 'An active session already exists. Please end it first.',
+                'session_id': active_session.session_id
+            }, status=400)
+        
+        # Get all database tool IDs
+        all_db_records = ConnectedDatabase.objects.all()
+        dynamic_tool_ids = []
+        for record in all_db_records:
+            dynamic_tool_ids.extend(record.vapi_tool_ids)
+        
+        # Get all file IDs from knowledge documents
+        knowledge_docs = KnowledgeDocument.objects.all()
+        file_ids = [doc.vapi_file_id for doc in knowledge_docs if doc.vapi_file_id]
+        
+        print(f"📋 Database Tool IDs: {dynamic_tool_ids}")
+        print(f"📄 File IDs: {file_ids}")
+        
+        # Create permanent assistant for inbound calls
+        service = VAPIService()
+        
+        # Check if assistant already exists
+        existing_assistant_id = service.get_existing_assistant_id("Sahayaki")
+        
+        if existing_assistant_id:
+            print(f"♻️ Using existing assistant: {existing_assistant_id}")
+            assistant_id = existing_assistant_id
+        else:
+            # Create new permanent assistant
+            assistant_response = service.create_permanent_assistant(
+                db_tool_ids=dynamic_tool_ids,
+                file_ids=file_ids
+            )
+            
+            if 'error' in assistant_response:
+                print(f"❌ Failed to create assistant: {assistant_response.get('error')}")
+                return Response({
+                    'success': False,
+                    'error': f"Failed to create assistant: {assistant_response.get('error')}"
+                }, status=500)
+            
+            assistant_id = assistant_response.get('id')
+            if not assistant_id:
+                return Response({
+                    'success': False,
+                    'error': 'Assistant created but no ID returned'
+                }, status=500)
+        
+        # Generate a unique session ID
+        import uuid
+        session_id = str(uuid.uuid4())
+        
+        # Create a session in your database to track the assistant
         session = CallingSession.objects.create(
-            session_id=call_response.get('id'),
+            session_id=session_id,
+            assistant_id=assistant_id,
             is_active=True
         )
-        return Response({'success': True, 'session_id': session.session_id})
-    
-    return Response({'success': False, 'error': 'VAPI Call Failed'}, status=500)
+        
+        print(f"✅ Session started successfully!")
+        print(f"   Session ID: {session_id}")
+        print(f"   Assistant ID: {assistant_id}")
+        print("="*50 + "\n")
+        
+        return Response({
+            'success': True,
+            'session_id': session_id,
+            'assistant_id': assistant_id,
+            'message': 'Permanent assistant created for inbound calls'
+        })
+        
+    except Exception as e:
+        print(f"❌ Error starting session: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
 
 @api_view(['GET'])
 def get_documents(request):
@@ -97,29 +167,69 @@ def get_documents(request):
     
 @api_view(['POST'])
 def stop_calling(request):
-    """Stop the calling agent"""
-    
+    """
+    Stop the calling session by deleting the permanent Vapi assistant.
+    """
     print("\n" + "="*50)
-    print("🛑 STOP CALLING REQUEST RECEIVED")
+    print("🛑 STOP SESSION REQUEST RECEIVED")
     print("="*50)
     print(f"📦 Request Data: {request.data}")
     print("="*50 + "\n")
     
     try:
         session_id = request.data.get('session_id')
+        
+        # If session_id provided, use it; otherwise find active session
         if session_id:
-            session = CallingSession.objects.get(session_id=session_id)
-            session.is_active = False
-            session.ended_at = timezone.now()
-            session.save()
+            try:
+                session = CallingSession.objects.get(session_id=session_id)
+            except CallingSession.DoesNotExist:
+                return Response({
+                    'success': False,
+                    'error': f'Session {session_id} not found'
+                }, status=404)
+        else:
+            # Find active session
+            session = CallingSession.objects.filter(is_active=True).first()
+            if not session:
+                return Response({
+                    'success': False,
+                    'error': 'No active session found'
+                }, status=404)
+        
+        assistant_id = session.assistant_id
+        
+        # Delete the assistant from Vapi
+        if assistant_id:
+            service = VAPIService()
+            deleted = service.delete_assistant(assistant_id)
             
+            if not deleted:
+                print(f"⚠️ Failed to delete assistant {assistant_id}, but continuing with session cleanup")
+        else:
+            print("⚠️ No assistant_id found in session, skipping assistant deletion")
+        
+        # Update session to inactive
+        session.is_active = False
+        session.ended_at = timezone.now()
+        session.save()
+        
+        print(f"✅ Session stopped successfully!")
+        print(f"   Session ID: {session.session_id}")
+        print(f"   Assistant ID: {assistant_id}")
+        print("="*50 + "\n")
+        
         return Response({
             'success': True,
-            'message': 'Calling agent stopped successfully'
+            'message': 'Session stopped and assistant deleted successfully',
+            'session_id': session.session_id,
+            'assistant_id': assistant_id
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"❌ Error stopping calling: {str(e)}")
+        print(f"❌ Error stopping session: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return Response({
             'success': False,
             'error': str(e)
@@ -449,16 +559,22 @@ def delete_database(request):
     db_name = request.query_params.get('name')
     
     try:
-        db_record = ConnectedDatabase.objects.get(name=db_name)
-        db_record.delete()
-        print(f"🗑️ Purged {db_name} from local storage.")
+        db_records = ConnectedDatabase.objects.filter(name=db_name)
+        count = db_records.count()
+        
+        if count == 0:
+            return Response({"error": "Database not found"}, status=404)
+        
+        db_records.delete()
+        print(f"🗑️ Purged {count} record(s) with name '{db_name}' from local storage.")
         
         return Response({
             "success": True, 
-            "message": f"Database {db_name} deleted. It will not be included in future calls."
+            "message": f"Database {db_name} deleted ({count} record(s) removed). It will not be included in future calls."
         })
-    except ConnectedDatabase.DoesNotExist:
-        return Response({"error": "Database not found"}, status=404)
+    except Exception as e:
+        print(f"❌ Error deleting database: {str(e)}")
+        return Response({"error": f"Failed to delete database: {str(e)}"}, status=500)
 
 
 @api_view(['GET'])
@@ -784,6 +900,7 @@ def connect_google_sheets(request):
             
             df_data = df.to_dict(orient='records')
             # The search tool name always keeps the 'search_' prefix for the backend router
+            # Note: sanitization happens inside create_db_function_tool
             read_tool = vapi_service.create_db_function_tool(
                 f"search_{db_name.lower().replace(' ', '_')}", 
                 f"SEARCH TOOL: {read_desc}", 
@@ -804,7 +921,8 @@ def connect_google_sheets(request):
             write_analysis = structured_llm.invoke(write_prompt)
             
             # Use the AI to generate a clean, action-oriented function name
-            write_func_name = f"log_{db_name.lower().replace(' ', '_')}"
+            # Sanitize to meet Vapi requirements: /^[a-zA-Z0-9_-]{1,64}$/
+            write_func_name = sanitize_function_name(f"log_{db_name.lower().replace(' ', '_')}")
             write_desc = f"APPEND TOOL: {write_analysis.summary}"
 
             write_payload = {
@@ -846,10 +964,13 @@ def connect_google_sheets(request):
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def execute_sheet_write(request):
+    print(f"📥 Received sheet write request: {json.dumps(request.data, indent=2)}")
+    
     message = request.data.get('message', {})
     tool_calls = message.get('toolCalls', [])
     
     if not tool_calls:
+        print("❌ No tool calls provided")
         return Response({"error": "No tool call provided"}, status=400)
     
     call = tool_calls[0]
@@ -857,40 +978,99 @@ def execute_sheet_write(request):
     vapi_tool_id = call.get('toolId')
     function_name = call.get('function', {}).get('name', '')
     args = call.get('function', {}).get('arguments', {})
+    
+    # Parse args if it's a string (common with Vapi)
+    if isinstance(args, str):
+        try:
+            args = json.loads(args)
+            print(f"✅ Parsed JSON args: {args}")
+        except json.JSONDecodeError as e:
+            print(f"⚠️ Failed to parse args as JSON: {e}")
+            args = {}
+
+    print(f"🔍 Looking up database - Function: {function_name}, Tool ID: {vapi_tool_id}")
 
     # 1. DEFENSIVE LOOKUP
+    # First try by Vapi Tool ID (most reliable)
     db = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
+    
     if not db:
-        clean_name = function_name.replace('log_', '').replace('write_', '')
-        db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
+        # Try matching by function name (handle sanitized names)
+        # Remove prefixes like log_, write_, search_
+        clean_name = function_name.replace('log_', '').replace('write_', '').replace('search_', '')
+        print(f"🔍 Trying name-based lookup (cleaned): {clean_name}")
+        
+        # Try exact match first
+        db = ConnectedDatabase.objects.filter(name=clean_name).first()
+        
+        # Try case-insensitive contains match
+        if not db:
+            db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
+        
+        # Try matching against sanitized versions of all database names
+        if not db:
+            print(f"🔍 Trying fuzzy match against all databases...")
+            all_dbs = ConnectedDatabase.objects.filter(source_type="googlesheets")
+            for candidate_db in all_dbs:
+                # Sanitize the candidate name and compare
+                candidate_sanitized = sanitize_function_name(candidate_db.name.lower().replace(' ', '_'))
+                function_sanitized = sanitize_function_name(clean_name)
+                if candidate_sanitized == function_sanitized or candidate_sanitized in function_sanitized or function_sanitized in candidate_sanitized:
+                    print(f"✅ Matched via fuzzy sanitization: {candidate_db.name}")
+                    db = candidate_db
+                    break
 
     if db is None:
+        print(f"❌ Database not found for function: {function_name}")
         return Response({
             "results": [{"toolCallId": tool_call_id, "result": "Error: DB not found."}]
         }, status=200)
 
+    print(f"✅ Found database: {db.name} (ID: {db.id})")
     details = db.connection_details or {}
     spreadsheet_id = details.get('spreadsheet_id')
+    
+    if not spreadsheet_id:
+        print(f"❌ No spreadsheet_id found in connection_details: {details}")
+        return Response({
+            "results": [{"toolCallId": tool_call_id, "result": "Error: Spreadsheet ID not found."}]
+        }, status=200)
+
+    print(f"📊 Spreadsheet ID: {spreadsheet_id}")
+    print(f"📋 Columns: {db.columns}")
+    print(f"📝 Args received: {args}")
 
     try:
         # 2. PREPARE DATA
         # Create a dictionary for Django and a list for Google Sheets
         new_entry_dict = {col: str(args.get(col, "")) for col in db.columns}
         new_row_list = [new_entry_dict[col] for col in db.columns]
+        
+        print(f"📦 Prepared row data: {new_row_list}")
 
         # 3. GOOGLE SHEETS WRITE (External)
         base_dir = settings.BASE_DIR
         json_path = os.path.join(base_dir, 'service_account.json')
+        
+        if not os.path.exists(json_path):
+            raise FileNotFoundError(f"Service account JSON not found at: {json_path}")
+        
+        print(f"🔑 Using service account: {json_path}")
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
         client = gspread.authorize(creds)
         
-        sheet = client.open_by_key(spreadsheet_id).sheet1
+        print(f"📄 Opening spreadsheet: {spreadsheet_id}")
+        spreadsheet = client.open_by_key(spreadsheet_id)
+        sheet = spreadsheet.sheet1
+        
+        print(f"✍️ Appending row to sheet: {sheet.title}")
         sheet.append_row(new_row_list)
+        print(f"✅ Successfully appended row to Google Sheet")
 
         # 4. DJANGO DATABASE UPDATE (Internal Sync)
         # We append the new dictionary to the existing 'data' list
-        current_data = list(db.data) # Cast to list to be safe
+        current_data = list(db.data) if db.data else [] # Cast to list to be safe
         current_data.append(new_entry_dict)
         db.data = current_data
         db.save() # This commits the new row to your Django DB
@@ -905,7 +1085,10 @@ def execute_sheet_write(request):
         }, status=200)
 
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
         print(f"❌ Sync Error: {str(e)}")
+        print(f"❌ Traceback: {error_trace}")
         return Response({
             "results": [{"toolCallId": tool_call_id, "result": f"Sync Error: {str(e)}"}]
         }, status=200)

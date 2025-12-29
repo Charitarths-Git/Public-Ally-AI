@@ -41,51 +41,78 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [isCalling, setIsCalling] = useState(false);
   const [activeFileIds, setActiveFileIds] = useState<string[]>([]);
   const [sessionInProgress, setSessionInProgress] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
   const triggerNextCall = async () => {
-    const nextPerson = callingQueue.find(entry => entry.status === 'pending');
-
-    if (!nextPerson) {
-      alert("No more pending calls in the queue!");
-      return;
-    }
-
     setIsCalling(true);
     setSessionInProgress(true);
 
-    setCallingQueue(prev => prev.map(entry => 
-      entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
-    ));
-
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {
-        phone_number: nextPerson.phone.replace(/\s+/g, ''),
-        file_ids: activeFileIds
-      });
+      // Start session by creating permanent assistant for inbound calls
+      const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {});
 
       if (response.data.success) {
-        console.log('Call initiated successfully:', response.data.session_id);
+        const sessionId = response.data.session_id;
+        const assistantId = response.data.assistant_id;
+        setCurrentSessionId(sessionId);
+        console.log('Session started successfully:', {
+          session_id: sessionId,
+          assistant_id: assistantId
+        });
+        alert(`Session started! Assistant is now ready to receive inbound calls.\nSession ID: ${sessionId}`);
+      } else {
+        throw new Error(response.data.error || 'Failed to start session');
       }
     } catch (error: any) {
       console.error("VAPI/Django Error:", error.response?.data || error.message);
-      alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
-      
-      setCallingQueue(prev => prev.map(entry => 
-        entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
-      ));
+      const errorMessage = error.response?.data?.error || error.message || "Server error";
+      alert("Failed to start session: " + errorMessage);
       setSessionInProgress(false);
     } finally {
       setIsCalling(false);
     }
   };
 
-  const endSession = () => {
+  const endSession = async () => {
+    if (!currentSessionId) {
+      // Try to get session status from backend
+      try {
+        const statusResponse = await axios.get('http://127.0.0.1:8000/api/session-status/');
+        if (statusResponse.data.is_active && statusResponse.data.session_id) {
+          setCurrentSessionId(statusResponse.data.session_id);
+        }
+      } catch (error) {
+        console.error("Could not fetch session status:", error);
+      }
+    }
+
+    if (currentSessionId) {
+      try {
+        setIsCalling(true);
+        const response = await axios.post('http://127.0.0.1:8000/api/stop-calling/', {
+          session_id: currentSessionId
+        });
+
+        if (response.data.success) {
+          console.log('Session ended successfully:', response.data);
+          alert('Session ended successfully. Assistant has been deleted.');
+        } else {
+          throw new Error(response.data.error || 'Failed to end session');
+        }
+      } catch (error: any) {
+        console.error("Error ending session:", error.response?.data || error.message);
+        alert("Failed to end session: " + (error.response?.data?.error || error.message || "Server error"));
+      } finally {
+        setIsCalling(false);
+      }
+    }
+
     // Mark all calling entries as completed
     setCallingQueue(prev => prev.map(entry => 
       entry.status === 'calling' ? { ...entry, status: 'completed' } : entry
     ));
     setSessionInProgress(false);
-    setIsCalling(false);
+    setCurrentSessionId(null);
   };
 
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([

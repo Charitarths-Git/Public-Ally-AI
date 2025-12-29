@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Edit2, Check, X, Plus, Phone, Upload, Database as DatabaseIcon, Settings, Info, PhoneOff, AlertCircle } from 'lucide-react';
+import { Edit2, Check, X, Plus, Phone, Upload, Database as DatabaseIcon, Settings, Info, PhoneOff, AlertCircle, UserPlus, Trash2 } from 'lucide-react';
 import type { UserSession } from '../../App';
 import AddNumberModal from '../modals/AddNumberModal';
 import UploadDocumentModal from '../modals/UploadDocumentModal';
 import ConnectDatabaseModal from '../modals/ConnectDatabaseModal';
+import AddHumanExpertModal from '../modals/AddHumanExpertModal';
 import axios from 'axios';
 
 interface HomePageProps {
@@ -32,9 +33,11 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [aiName, setAiName] = useState('LokMitra');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(aiName);
-  const [escalationNumber, setEscalationNumber] = useState('8668944955');
-  const [isEditingEscalation, setIsEditingEscalation] = useState(false);
-  const [tempEscalation, setTempEscalation] = useState(escalationNumber);
+  const [escalationNumber, setEscalationNumber] = useState('');
+  const [expertField, setExpertField] = useState('');
+  const [humanExpertToolId, setHumanExpertToolId] = useState<string | null>(null);
+  const [showHumanExpertModal, setShowHumanExpertModal] = useState(false);
+  const [isCreatingExpert, setIsCreatingExpert] = useState(false);
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
@@ -156,16 +159,34 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsEditingName(false);
   };
 
-  const handleSaveEscalation = () => {
-    if (tempEscalation.trim()) {
-      setEscalationNumber(tempEscalation);
-      setIsEditingEscalation(false);
+  const handleAddHumanExpert = async (data: { phoneNumber: string; expertField: string }) => {
+    setIsCreatingExpert(true);
+    
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/create-human-expert/', {
+        phone_number: data.phoneNumber,
+        expert_field: data.expertField
+      });
+      
+      if (response.data.success) {
+        setEscalationNumber(data.phoneNumber);
+        setExpertField(data.expertField);
+        setHumanExpertToolId(response.data.tool_id);
+        setShowHumanExpertModal(false);
+        console.log('Human expert tool created:', response.data.tool_id);
+      }
+    } catch (error: any) {
+      console.error('Error creating human expert:', error.response?.data || error.message);
+      alert('Failed to create human expert tool: ' + (error.response?.data?.error || 'Server error'));
+    } finally {
+      setIsCreatingExpert(false);
     }
   };
 
-  const handleCancelEscalation = () => {
-    setTempEscalation(escalationNumber);
-    setIsEditingEscalation(false);
+  const handleRemoveHumanExpert = () => {
+    setEscalationNumber('');
+    setExpertField('');
+    setHumanExpertToolId(null);
   };
 
   const handleAddNumber = (entry: Omit<QueueEntry, 'id' | 'status'>) => {
@@ -386,62 +407,59 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           </p>
         </div>
 
-        {/* Escalation Number */}
+        {/* Human Expert Escalation */}
         <div>
           <label className="block text-xs sm:text-sm text-gray-600 mb-2 flex items-center gap-2">
-            <span className="break-words">Human-in-the-Loop Escalation Number</span>
+            <span className="break-words">Human-in-the-Loop Escalation</span>
             <div className="group relative flex-shrink-0">
               <Info className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 cursor-help" />
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                Phone number for escalating calls to human agents
+                Configure a human expert for call transfers
               </div>
             </div>
           </label>
-          <div className="flex items-center gap-2">
-            {isEditingEscalation ? (
-              <>
-                <input
-                  type="text"
-                  value={tempEscalation}
-                  onChange={(e) => setTempEscalation(e.target.value)}
-                  className="flex-1 px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base"
-                  autoFocus
-                />
+          
+          {escalationNumber ? (
+            <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-gray-200">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: accentColor }} />
+                    <span className="text-base sm:text-lg font-medium break-all">{escalationNumber}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                    <span className="text-sm text-gray-600 break-words">{expertField}</span>
+                  </div>
+                  {humanExpertToolId && (
+                    <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Tool configured (ID: {humanExpertToolId.slice(0, 8)}...)
+                    </p>
+                  )}
+                </div>
                 <motion.button
-                  onClick={handleSaveEscalation}
-                  className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  onClick={handleRemoveHumanExpert}
+                  className="p-2 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 flex-shrink-0"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
+                  title="Remove human expert"
                 >
-                  <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
-                <motion.button
-                  onClick={handleCancelEscalation}
-                  className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
-                </motion.button>
-              </>
-            ) : (
-              <>
-                <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500 flex-shrink-0" />
-                <span className="text-base sm:text-lg flex-1 break-all">{escalationNumber}</span>
-                <motion.button
-                  onClick={() => {
-                    setTempEscalation(escalationNumber);
-                    setIsEditingEscalation(true);
-                  }}
-                  className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 flex-shrink-0"
-                  whileHover={{ scale: 1.05 }}
-                  title="Edit escalation number"
-                >
-                  <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                </motion.button>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          ) : (
+            <motion.button
+              onClick={() => setShowHumanExpertModal(true)}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-all"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <UserPlus className="w-5 h-5" />
+              <span>Add Human Expert</span>
+            </motion.button>
+          )}
         </div>
       </motion.div>
 
@@ -645,6 +663,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         isOpen={showDatabaseModal}
         onClose={() => setShowDatabaseModal(false)}
         accentColor={accentColor}
+      />
+      <AddHumanExpertModal
+        isOpen={showHumanExpertModal}
+        onClose={() => setShowHumanExpertModal(false)}
+        onAdd={handleAddHumanExpert}
+        accentColor={accentColor}
+        isLoading={isCreatingExpert}
       />
     </div>
   );

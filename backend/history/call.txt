@@ -1,21 +1,25 @@
-Call ID: 019b6a82-5efd-7aa8-abdc-672a369756ab
+Call ID: 019b6aa9-22ec-7110-8925-ce07e3a26842
 Phone Number: +918668944955
-Status: ended
-Ended Reason: customer-busy
-Duration: 0 seconds
-Cost: $0
-Started At: 
-Ended At: 
-Recording URL: 
-Stereo Recording URL: 
+Status: queued
+Ended Reason: assistant-ended-call
+Duration: 24.973 seconds
+Cost: $0.0249
+Started At: 2025-12-29T15:10:37.301Z
+Ended At: 2025-12-29T15:11:02.274Z
+Recording URL: https://storage.vapi.ai/019b6aa9-22ec-7110-8925-ce07e3a26842-1767021064868-45d3c34f-f201-4af0-a909-09ea474fc44e-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b6aa9-22ec-7110-8925-ce07e3a26842-1767021064868-f55df676-344c-443b-a4d0-d0940bbbae62-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-
+The user initiated the call by stating they knew legal details. They subsequently requested to be transferred to a human legal expert to discuss the matter further.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-No transcript available
+AI: Namaste I am Sahayaki how can I help you?
+User: Uh actually I know the legal details of even.
+AI: Thank you for sharing. Is there any other way I can assist you today?
+User: Uh no, I can you pass Transfer the call to human legal expert so I can talk to him.
+
 ================================================================================

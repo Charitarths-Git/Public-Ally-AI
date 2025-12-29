@@ -1022,3 +1022,65 @@ def execute_sheet_write(request):
         return Response({
             "results": [{"toolCallId": tool_call_id, "result": f"Sync Error: {str(e)}"}]
         }, status=200)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def create_human_expert(request):
+    """
+    Creates a VAPI transferCall tool for human expert escalation.
+    Takes phone_number and expert_field as inputs.
+    Returns the created tool ID.
+    """
+    print("\n" + "="*50)
+    print("👤 CREATE HUMAN EXPERT REQUEST RECEIVED")
+    print("="*50)
+    print(f"📦 Request Data: {request.data}")
+    print("="*50 + "\n")
+    
+    phone_number = request.data.get('phone_number')
+    expert_field = request.data.get('expert_field')
+    
+    if not phone_number:
+        return Response({
+            'success': False, 
+            'error': 'phone_number is required'
+        }, status=400)
+    
+    if not expert_field:
+        return Response({
+            'success': False, 
+            'error': 'expert_field is required'
+        }, status=400)
+    
+    # Ensure phone number has proper format
+    if not phone_number.startswith('+'):
+        phone_number = f"+{phone_number}"
+    
+    try:
+        service = VAPIService()
+        tool_response = service.create_transfer_call_tool(phone_number, expert_field)
+        
+        if 'error' in tool_response:
+            return Response({
+                'success': False,
+                'error': tool_response['error']
+            }, status=500)
+        
+        tool_id = tool_response.get('id')
+        print(f"✅ Human Expert Tool Created: {tool_id}")
+        
+        return Response({
+            'success': True,
+            'tool_id': tool_id,
+            'phone_number': phone_number,
+            'expert_field': expert_field,
+            'message': 'Human expert transfer tool created successfully'
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error creating human expert tool: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)

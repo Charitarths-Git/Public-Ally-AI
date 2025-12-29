@@ -364,3 +364,48 @@ class VAPIService:
         else:
             print(f"❌ Vapi Generic Tool Error: {res.text}")
             return {"error": res.text}
+
+    def create_transfer_call_tool(self, phone_number, expert_description):
+        """
+        Creates a VAPI transferCall tool for human expert escalation.
+        This tool allows the AI to transfer calls to a human expert.
+        """
+        url = f"{self.base_url}/tool"
+        
+        payload = {
+            "type": "transferCall",
+            "function": {
+                "name": "transfer_call_tool",
+                "parameters": None,
+                "description": "this tool transfer the call to human expert when the client ask for exact details and if the case is sensative or there is any personal question"
+            },
+            "messages": [
+                {
+                    "type": "request-start",
+                    "blocking": False
+                }
+            ],
+            "destinations": [
+                {
+                    "type": "number",
+                    "number": phone_number,
+                    "message": "Okay, this is a crucial and sensitive topic to solve by me. I will transfer the call to our corresponding expert who will further help you related to this.",
+                    "description": f"when the client speaks about give me more details about {expert_description} or uses specific terms related to {expert_description}, invoke this tool",
+                    "transferPlan": {
+                        "mode": "blind-transfer",
+                        "sipVerb": "refer"
+                    },
+                    "numberE164CheckEnabled": True
+                }
+            ]
+        }
+
+        try:
+            res = requests.post(url, headers=self.headers, json=payload, timeout=30)
+            res.raise_for_status()
+            tool_response = res.json()
+            print(f"✅ TransferCall tool created successfully: {tool_response.get('id')}")
+            return tool_response
+        except Exception as e:
+            print(f"❌ TransferCall Tool Error: {e}")
+            return {"error": str(e)}

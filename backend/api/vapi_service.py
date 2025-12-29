@@ -57,33 +57,45 @@ class VAPIService:
             }
         }
 
-    def start_outbound_call(self, phone_number, db_tool_ids, file_ids=None):
+    def start_outbound_call(self, phone_number, db_tool_ids, file_ids=None, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
         """
         Initiates an outbound call to a phone number.
+        Uses agent_name and agent_description if provided.
+        Uses enabled_base_tool_ids instead of default TOOL_ID if provided.
         """
         if db_tool_ids is None:
             db_tool_ids = []
         if file_ids is None:
             file_ids = []
+        
+        # Use provided name or default
+        name = agent_name or "Sahayaki"
+        description = agent_description or "A helpful AI voice assistant"
+        
+        # Use enabled base tools or default to all base tools
+        base_tools = enabled_base_tool_ids if enabled_base_tool_ids is not None else TOOL_ID
 
         print(f"📞 Starting outbound call to {phone_number}")
-        print(f"🔧 Tool IDs: {TOOL_ID + db_tool_ids}")
+        print(f"🤖 Agent Name: {name}")
+        print(f"🔧 Base Tool IDs: {base_tools}")
+        print(f"🔧 Additional Tool IDs: {db_tool_ids}")
         print(f"📄 File IDs: {file_ids}")
         
         payload = {
             "assistant": {
-                "name": "Sahayaki",
-                "firstMessage": "Namaste, I am Sahayaki. How can I help you?",
+                "name": name,
+                "firstMessage": f"Namaste, I am {name}. How can I help you?",
                 "maxDurationSeconds": 43200,
                 "silenceTimeoutSeconds": 3600,
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4.1-nano",
-                    "toolIds": list(set(TOOL_ID + db_tool_ids)),
+                    "toolIds": list(set(base_tools + db_tool_ids)),
                     "messages": [
                                 {
                                     "role": "system",
                                     "content": f"""
+                            You are {name}. {description}
                             You are an autonomous, tool-using reasoning system operating in a live voice call.
                             Context: {self.llm_context}
 
@@ -160,33 +172,44 @@ class VAPIService:
             print(f"❌ Outbound Call Error: {e}")
             return None
 
-    def start_inbound_agent(self, db_tool_ids=None, file_ids=None):
+    def start_inbound_agent(self, db_tool_ids=None, file_ids=None, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
         """
         Creates and activates an inbound agent that handles incoming calls.
+        Uses agent_name and agent_description if provided.
+        Uses enabled_base_tool_ids instead of default TOOL_ID if provided.
         Returns the assistant ID if successful.
         """
         if db_tool_ids is None:
             db_tool_ids = []
         if file_ids is None:
             file_ids = []
+        
+        # Use provided name or default
+        name = agent_name or "Sahayaki"
+        description = agent_description or "A helpful AI voice assistant"
+        
+        # Use enabled base tools or default to all base tools
+        base_tools = enabled_base_tool_ids if enabled_base_tool_ids is not None else TOOL_ID
 
         print(f"📞 Starting inbound agent")
-        print(f"🔧 Tool IDs: {TOOL_ID + db_tool_ids}")
+        print(f"🤖 Agent Name: {name}")
+        print(f"🔧 Base Tool IDs: {base_tools}")
+        print(f"🔧 Additional Tool IDs: {db_tool_ids}")
         print(f"📄 File IDs: {file_ids}")
 
         try:
             # INBOUND ASSISTANT (PERSISTENT)
             inbound_assistant_payload = {
-                "name": "Sahayaki-Inbound",
-                "firstMessage": "Namaste. I am Sahayaki. How may I assist you today?",
+                "name": f"{name}-Inbound",
+                "firstMessage": f"Namaste. I am {name}. How may I assist you today?",
                 "model": {
                     "provider": "openai",
                     "model": "gpt-4.1-nano",
-                    "toolIds": list(set(TOOL_ID + db_tool_ids)),
+                    "toolIds": list(set(base_tools + db_tool_ids)),
                     "messages": [
                         {
                             "role": "system",
-                            "content": f"You are Sahayaki, a polite government-style inbound assistant. Context: {self.llm_context}. Answer clearly and respectfully. Do not ask for sensitive personal information. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information."
+                            "content": f"You are {name}. {description} You are a polite government-style inbound assistant. Context: {self.llm_context}. Answer clearly and respectfully. Do not ask for sensitive personal information. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information."
                         }
                     ],
                     "temperature": 0.4

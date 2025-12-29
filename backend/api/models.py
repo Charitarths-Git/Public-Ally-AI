@@ -98,3 +98,38 @@ class HumanExpert(models.Model):
     
     def __str__(self):
         return f"{self.expert_field} - {self.phone_number}"
+
+
+class AgentConfiguration(models.Model):
+    """
+    Singleton model to store agent configuration (name and description).
+    This is used for both inbound and outbound agents.
+    Also stores tool enablement settings.
+    """
+    
+    name = models.CharField(max_length=255, default='LokMitra')
+    description = models.TextField(
+        default='LokMitra is an AI voice agent serving the public to help people through voice interactions and knowledge access.'
+    )
+    # Tool settings: stores which tools/capabilities are enabled
+    # Format: {"tool_id": {"enabled": true, "name": "Tool Name", "description": "..."}}
+    tool_settings = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Agent Configuration'
+        verbose_name_plural = 'Agent Configurations'
+    
+    def save(self, *args, **kwargs):
+        # Enforce singleton: always use id=1
+        self.pk = 1
+        super().save(*args, **kwargs)
+    
+    @classmethod
+    def get_config(cls):
+        """Get or create the singleton configuration instance"""
+        config, _ = cls.objects.get_or_create(pk=1)
+        return config
+    
+    def __str__(self):
+        return f"Agent: {self.name}"

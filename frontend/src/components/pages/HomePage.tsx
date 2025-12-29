@@ -29,6 +29,14 @@ interface AICapability {
   enabled: boolean;
 }
 
+interface AvailableTool {
+  id: string;
+  name: string;
+  description: string;
+  type: 'base' | 'database' | 'transfer';
+  enabled: boolean;
+}
+
 interface HumanExpertData {
   id: number;
   phone_number: string;
@@ -39,8 +47,12 @@ interface HumanExpertData {
 
 export default function HomePage({ userSession, accentColor, secondaryColor }: HomePageProps) {
   const [aiName, setAiName] = useState('LokMitra');
+  const [aiDescription, setAiDescription] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [tempName, setTempName] = useState(aiName);
+  const [tempDescription, setTempDescription] = useState(aiDescription);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
   const [humanExpert, setHumanExpert] = useState<HumanExpertData | null>(null);
   const [showHumanExpertModal, setShowHumanExpertModal] = useState(false);
   const [isCreatingExpert, setIsCreatingExpert] = useState(false);
@@ -53,9 +65,27 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [sessionInProgress, setSessionInProgress] = useState(false);
   const [inboundAgentActive, setInboundAgentActive] = useState(false);
   const [isStartingInbound, setIsStartingInbound] = useState(false);
+  const [availableTools, setAvailableTools] = useState<AvailableTool[]>([]);
+  const [isLoadingTools, setIsLoadingTools] = useState(true);
+  const [isTogglingTool, setIsTogglingTool] = useState<string | null>(null);
 
-  // Fetch human experts on component mount
+  // Fetch agent configuration, human experts, and available tools on component mount
   useEffect(() => {
+    const fetchAgentConfiguration = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/agent-configuration/');
+        if (response.data && response.data.success) {
+          setAiName(response.data.name);
+          setTempName(response.data.name);
+          setAiDescription(response.data.description);
+          setTempDescription(response.data.description);
+          console.log('Loaded agent configuration from backend:', response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching agent configuration:', error);
+      }
+    };
+
     const fetchHumanExperts = async () => {
       try {
         const response = await axios.get('http://127.0.0.1:8000/api/human-experts/');
@@ -68,8 +98,25 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         console.error('Error fetching human experts:', error);
       }
     };
+
+    const fetchAvailableTools = async () => {
+      setIsLoadingTools(true);
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/available-tools/');
+        if (response.data && response.data.success) {
+          setAvailableTools(response.data.tools);
+          console.log('Loaded available tools from backend:', response.data.tools);
+        }
+      } catch (error) {
+        console.error('Error fetching available tools:', error);
+      } finally {
+        setIsLoadingTools(false);
+      }
+    };
     
+    fetchAgentConfiguration();
     fetchHumanExperts();
+    fetchAvailableTools();
   }, []);
 
   const triggerNextCall = async () => {
@@ -168,10 +215,47 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const outboundNumber = '+91 11000 00001';
 
-  const handleSaveName = () => {
-    if (tempName.trim()) {
-      setAiName(tempName);
-      setIsEditingName(false);
+  const handleSaveName = async () => {
+    if (!tempName.trim()) return;
+    
+    setIsSavingConfig(true);
+    try {
+      const response = await axios.put('http://127.0.0.1:8000/api/agent-configuration/update/', {
+        name: tempName.trim()
+      });
+      
+      if (response.data.success) {
+        setAiName(response.data.name);
+        setIsEditingName(false);
+        console.log('Agent name updated successfully:', response.data);
+      }
+    } catch (error: any) {
+      console.error('Error updating agent name:', error.response?.data || error.message);
+      alert('Failed to update agent name: ' + (error.response?.data?.error || 'Server error'));
+    } finally {
+      setIsSavingConfig(false);
+    }
+  };
+
+  const handleSaveDescription = async () => {
+    if (!tempDescription.trim()) return;
+    
+    setIsSavingConfig(true);
+    try {
+      const response = await axios.put('http://127.0.0.1:8000/api/agent-configuration/update/', {
+        description: tempDescription.trim()
+      });
+      
+      if (response.data.success) {
+        setAiDescription(response.data.description);
+        setIsEditingDescription(false);
+        console.log('Agent description updated successfully:', response.data);
+      }
+    } catch (error: any) {
+      console.error('Error updating agent description:', error.response?.data || error.message);
+      alert('Failed to update agent description: ' + (error.response?.data?.error || 'Server error'));
+    } finally {
+      setIsSavingConfig(false);
     }
   };
 
@@ -182,6 +266,11 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const handleCancelName = () => {
     setTempName(aiName);
     setIsEditingName(false);
+  };
+
+  const handleCancelDescription = () => {
+    setTempDescription(aiDescription);
+    setIsEditingDescription(false);
   };
 
   const handleAddHumanExpert = async (data: { phoneNumber: string; expertField: string }) => {
@@ -240,6 +329,36 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setCallingQueue([...callingQueue, newEntry]);
   };
 
+  const toggleTool = async (toolId: string) => {
+    if (sessionInProgress) return;
+    
+    const tool = availableTools.find(t => t.id === toolId);
+    if (!tool) return;
+    
+    const newEnabled = !tool.enabled;
+    setIsTogglingTool(toolId);
+    
+    try {
+      const response = await axios.put('http://127.0.0.1:8000/api/tool-status/update/', {
+        tool_id: toolId,
+        enabled: newEnabled
+      });
+      
+      if (response.data.success) {
+        setAvailableTools(prev => prev.map(t =>
+          t.id === toolId ? { ...t, enabled: newEnabled } : t
+        ));
+        console.log(`Tool ${toolId} status updated to: ${newEnabled}`);
+      }
+    } catch (error: any) {
+      console.error('Error toggling tool:', error.response?.data || error.message);
+      alert('Failed to update tool status: ' + (error.response?.data?.error || 'Server error'));
+    } finally {
+      setIsTogglingTool(null);
+    }
+  };
+
+  // Keep legacy toggleCapability for backwards compatibility but it now uses toggleTool
   const toggleCapability = (id: string) => {
     if (sessionInProgress) return;
     setCapabilities(capabilities.map(cap =>
@@ -404,20 +523,27 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   onChange={(e) => setTempName(e.target.value)}
                   className="flex-1 px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base"
                   autoFocus
+                  disabled={isSavingConfig}
                 />
                 <motion.button
                   onClick={handleSaveName}
-                  className="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  disabled={isSavingConfig}
+                  className={`p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 ${isSavingConfig ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={!isSavingConfig ? { scale: 1.05 } : {}}
+                  whileTap={!isSavingConfig ? { scale: 0.95 } : {}}
                 >
-                  <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {isSavingConfig ? (
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
                 </motion.button>
                 <motion.button
                   onClick={handleCancelName}
-                  className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  disabled={isSavingConfig}
+                  className={`p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 ${isSavingConfig ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={!isSavingConfig ? { scale: 1.05 } : {}}
+                  whileTap={!isSavingConfig ? { scale: 0.95 } : {}}
                 >
                   <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.button>
@@ -443,10 +569,62 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
         {/* Description */}
         <div className="mb-6">
-          <label className="block text-xs sm:text-sm text-gray-600 mb-2">Description</label>
-          <p className="text-sm sm:text-base text-gray-700 bg-gray-50 p-3 sm:p-4 rounded-lg">
-            {aiName} is an AI voice agent serving <strong>{userSession.subcategory}</strong> to help people through voice interactions and knowledge access.
-          </p>
+          <label className="block text-xs sm:text-sm text-gray-600 mb-2">Agent Description</label>
+          {isEditingDescription ? (
+            <div className="space-y-2">
+              <textarea
+                value={tempDescription}
+                onChange={(e) => setTempDescription(e.target.value)}
+                className="w-full px-3 sm:px-4 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 text-sm sm:text-base min-h-[100px] resize-y"
+                autoFocus
+                disabled={isSavingConfig}
+                placeholder="Describe what this AI agent does..."
+              />
+              <div className="flex gap-2 justify-end">
+                <motion.button
+                  onClick={handleSaveDescription}
+                  disabled={isSavingConfig}
+                  className={`flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 text-sm ${isSavingConfig ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={!isSavingConfig ? { scale: 1.02 } : {}}
+                  whileTap={!isSavingConfig ? { scale: 0.98 } : {}}
+                >
+                  {isSavingConfig ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  Save
+                </motion.button>
+                <motion.button
+                  onClick={handleCancelDescription}
+                  disabled={isSavingConfig}
+                  className={`flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 text-sm ${isSavingConfig ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={!isSavingConfig ? { scale: 1.02 } : {}}
+                  whileTap={!isSavingConfig ? { scale: 0.98 } : {}}
+                >
+                  <X className="w-4 h-4" />
+                  Cancel
+                </motion.button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start gap-2">
+              <p className="flex-1 text-sm sm:text-base text-gray-700 bg-gray-50 p-3 sm:p-4 rounded-lg break-words">
+                {aiDescription || `${aiName} is an AI voice agent serving ${userSession.subcategory} to help people through voice interactions and knowledge access.`}
+              </p>
+              <motion.button
+                onClick={() => {
+                  setTempDescription(aiDescription || `${aiName} is an AI voice agent serving ${userSession.subcategory} to help people through voice interactions and knowledge access.`);
+                  setIsEditingDescription(true);
+                }}
+                className="p-2 text-gray-600 hover:text-gray-800 rounded-lg hover:bg-gray-100 flex-shrink-0 mt-1"
+                whileHover={{ scale: 1.05 }}
+                title="Edit description"
+              >
+                <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
+              </motion.button>
+            </div>
+          )}
         </div>
 
         {/* Human Expert Escalation */}
@@ -661,37 +839,70 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         </div>
       </motion.div>
 
-      {/* AI Capabilities */}
+      {/* AI Tools & Capabilities */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
         className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
-        <h3 className="text-lg sm:text-xl mb-4" style={{ color: accentColor }}>AI Capabilities & Controls</h3>
-        <div className="space-y-4">
-          {capabilities.map((capability) => (
-            <div key={capability.id} className="flex sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
-              <div className="flex-1 w-full sm:w-auto">
-                <h4 className="text-base sm:text-lg mb-1 break-words">{capability.label}</h4>
-                <p className="text-xs sm:text-sm text-gray-600 break-words">{capability.description}</p>
-              </div>
-              <motion.button
-                onClick={() => toggleCapability(capability.id)}
-                className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${capability.enabled ? 'bg-green-500' : 'bg-gray-300'
+        <h3 className="text-lg sm:text-xl mb-4" style={{ color: accentColor }}>AI Tools & Capabilities</h3>
+        <p className="text-xs sm:text-sm text-gray-500 mb-4">Toggle tools on/off to control what the AI agent can access during calls.</p>
+        
+        {isLoadingTools ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+            <span className="ml-3 text-gray-500">Loading tools...</span>
+          </div>
+        ) : availableTools.length === 0 ? (
+          <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+            No tools available. Add databases or configure human experts to see tools here.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {availableTools.map((tool) => (
+              <div key={tool.id} className={`flex sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-lg border-2 ${
+                tool.enabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+              }`}>
+                <div className="flex-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="text-base sm:text-lg break-words">{tool.name}</h4>
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase font-semibold ${
+                      tool.type === 'base' ? 'bg-blue-100 text-blue-700' :
+                      tool.type === 'database' ? 'bg-purple-100 text-purple-700' :
+                      'bg-orange-100 text-orange-700'
+                    }`}>
+                      {tool.type}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-gray-600 break-words">{tool.description}</p>
+                </div>
+                <motion.button
+                  onClick={() => toggleTool(tool.id)}
+                  disabled={isTogglingTool === tool.id}
+                  className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${
+                    isTogglingTool === tool.id ? 'opacity-50 cursor-not-allowed' :
+                    tool.enabled ? 'bg-green-500' : 'bg-gray-300'
                   }`}
-                whileTap={!sessionInProgress ? { scale: 0.95 } : {}}
-                title={`Toggle ${capability.label}`}
-              >
-                <motion.div
-                  className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
-                  animate={{ left: capability.enabled ? '30px' : '4px' }}
-                  transition={{ duration: 0.2 }}
-                />
-              </motion.button>
-            </div>
-          ))}
-        </div>
+                  whileTap={!sessionInProgress && isTogglingTool !== tool.id ? { scale: 0.95 } : {}}
+                  title={`Toggle ${tool.name}`}
+                >
+                  {isTogglingTool === tool.id ? (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <motion.div
+                      className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-md"
+                      animate={{ left: tool.enabled ? '30px' : '4px' }}
+                      transition={{ duration: 0.2 }}
+                    />
+                  )}
+                </motion.button>
+              </div>
+            ))}
+          </div>
+        )}
       </motion.div>
 
       {/* Modals */}

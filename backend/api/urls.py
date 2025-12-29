@@ -27,5 +27,8 @@ urlpatterns = [
     path('create-human-expert/', views.create_human_expert, name='create_human_expert'),
     path('human-experts/', views.get_human_experts, name='get_human_experts'),
     path('human-experts/<int:expert_id>/', views.delete_human_expert, name='delete_human_expert'),
+    path('agent-configuration/', views.get_agent_configuration, name='get_agent_configuration'),
+    path('agent-configuration/update/', views.update_agent_configuration, name='update_agent_configuration'),
+    path('available-tools/', views.get_available_tools, name='get_available_tools'),
+    path('tool-status/update/', views.update_tool_status, name='update_tool_status'),
 ]
-

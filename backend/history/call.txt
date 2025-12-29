@@ -1,29 +1,36 @@
-Call ID: 019b6b14-cfa2-799c-bd70-7d3de30fd0aa
+Call ID: 019b6b5f-1081-7fff-8409-da73ee9fe5e5
 Phone Number: +918668944955
 Status: queued
 Ended Reason: assistant-forwarded-call
-Duration: 72.889 seconds
-Cost: $0.0938
-Started At: 2025-12-29T17:08:18.055Z
-Ended At: 2025-12-29T17:09:30.944Z
-Recording URL: https://storage.vapi.ai/019b6b14-cfa2-799c-bd70-7d3de30fd0aa-1767028173762-918bf7ac-c9ae-423c-83bf-3a00fb1fba95-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019b6b14-cfa2-799c-bd70-7d3de30fd0aa-1767028173762-5800c4f6-c37f-4456-80b4-e11dc10c5227-stereo.wav
+Duration: 129.085 seconds
+Cost: $0.1571
+Started At: 2025-12-29T18:29:33.954Z
+Ended At: 2025-12-29T18:31:43.039Z
+Recording URL: https://storage.vapi.ai/019b6b5f-1081-7fff-8409-da73ee9fe5e5-1767033105699-4ad80ae9-3811-4bff-b4b0-832c05ee2eb6-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b6b5f-1081-7fff-8409-da73ee9fe5e5-1767033105700-1f803904-e6ec-4c1d-ab6d-0eae570191b0-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user initially inquired about government schemes but then expressed a complaint about their insufficiency for poor people, suggesting an increase in their number. The AI acknowledged this feedback and, at the user's request, transferred the call to a human expert for further assistance.
+The user called to register a complaint against the Ministry of Education, citing unresponsiveness to emails, issues with printing documents, and poor quality of education courses. The AI recorded these details and, recognizing the sensitive nature of the request, forwarded the call to a human expert for further assistance.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-AI: Namaste I am Sahayaki how can I help you
-User: Um actually I want to know about the government schemes.
-AI: Sure, I can provide information about various government schemes. Could you please specify which scheme or type of scheme you are interested in?
-User: actually I want to complain about the government schemes like they are insufficient for the poor people and we need to increase the number. for four minutes.
-AI: Hey.
-AI: Thank you for sharing your concern. Your feedback about the insufficiency of government schemes for poor people is important. If you need further assistance or want to discuss this with a government representative, I can help connect you or provide more information. Would you like
-User: Yes, please connect me with a human expert.
-AI: to do that? Okay, this is a crucial and sensitive topic to solve by me. I will transfer the call to our corresponding expert who will further help you.
+AI: Namaste, I am Lokmitra AI. How can I help you?
+User: Mm. Do you know about the
+AI: Could you please let me know how I can assist you today?
+User: Hello.
+AI: Hello, how can I assist you today?
+User: Uh actually I want to register a complaint about Ministry of Education.
+AI: Your complaint about the Ministry of Education has been recorded. Is there any specific issue or details you would like to share?
+User: Yeah, the Ministry of Education is not responding to my mails and also the responsibility of their printing the papers or a document
+AI: 
+AI: Thank you for sharing the details. I will now log this complaint with the Ministry of Education. Please hold on for a moment.
+AI: Your complaint regarding the Ministry of Education's response and printing responsibilities has been recorded. Is there anything else I can assist you with?
+User: events of the education courses is not good.
+AI: I understand your concern about the quality of education courses. Would you like to add this issue to your existing complaint or would you like to report it separately?
+User: Uh, can you help me out using a technical expert or human call?
+AI: Okay, this is a crucial and sensitive topic to solve by me. I will transfer the call to our corresponding expert who will further help you related to this.
 
 ================================================================================

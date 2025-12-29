@@ -13,7 +13,7 @@ import os
 from rapidfuzz import process, fuzz
 from .structured_output import ToolMetadata
 from .utils import deploy_supabase_edge_logic, fetch_google_sheet_as_df
-from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase, HumanExpert
+from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase, HumanExpert, AgentConfiguration
 from .serializers import CallHistorySerializer, CallingSessionSerializer
 from .vapi_service import VAPIService, sanitize_function_name
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -61,31 +61,56 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
 def start_outbound_calling(request):
     """
     Start outbound calling - initiates a call to a phone number.
+    Only includes tools that are enabled in agent configuration.
     """
+    from .vapi_service import TOOL_ID
+    
     phone_number = request.data.get('phone_number')
     file_ids = request.data.get('file_ids', [])
     
     if not phone_number:
         return Response({'success': False, 'error': 'phone_number is required'}, status=400)
 
-    # Get all database tool IDs
+    # Get agent configuration and tool settings
+    agent_config = AgentConfiguration.get_config()
+    tool_settings = agent_config.tool_settings or {}
+    
+    # Helper function to check if a tool is enabled
+    def is_tool_enabled(tool_id):
+        return tool_settings.get(tool_id, {}).get('enabled', True)  # Default enabled
+
+    # Get all database tool IDs (filtered by enabled status)
     all_db_records = ConnectedDatabase.objects.all()
     dynamic_tool_ids = []
     for record in all_db_records:
-        dynamic_tool_ids.extend(record.vapi_tool_ids)
+        for tool_id in record.vapi_tool_ids:
+            if is_tool_enabled(tool_id):
+                dynamic_tool_ids.append(tool_id)
 
-    # Get all active human expert transfer tool IDs
-    human_expert_tool_ids = list(
-        HumanExpert.objects.filter(is_active=True).values_list('vapi_tool_id', flat=True)
-    )
+    # Get all active human expert transfer tool IDs (filtered by enabled status)
+    human_expert_tool_ids = []
+    for expert in HumanExpert.objects.filter(is_active=True):
+        if is_tool_enabled(expert.vapi_tool_id):
+            human_expert_tool_ids.append(expert.vapi_tool_id)
     
-    # Combine database tools and human expert transfer tools
+    # Filter base TOOL_IDs based on enabled status
+    enabled_base_tool_ids = [tid for tid in TOOL_ID if is_tool_enabled(tid)]
+    
+    # Combine all enabled tools
     all_tool_ids = dynamic_tool_ids + human_expert_tool_ids
-    print(f"📞 Starting outbound call with tool IDs: {all_tool_ids}")
+    print(f"📞 Starting outbound call with enabled tool IDs: {enabled_base_tool_ids + all_tool_ids}")
     print(f"👤 Human Expert Tool IDs: {human_expert_tool_ids}")
+    print(f"🤖 Using Agent: {agent_config.name}")
 
     service = VAPIService()
-    call_response = service.start_outbound_call(phone_number, all_tool_ids, file_ids)
+    call_response = service.start_outbound_call(
+        phone_number, 
+        all_tool_ids, 
+        file_ids,
+        agent_name=agent_config.name,
+        agent_description=agent_config.description,
+        enabled_base_tool_ids=enabled_base_tool_ids
+    )
 
     if call_response:
         # Create a session in your database to track the call
@@ -105,27 +130,51 @@ def start_outbound_calling(request):
 def start_inbound_agent(request):
     """
     Start inbound agent - creates and activates an assistant to handle incoming calls.
+    Only includes tools that are enabled in agent configuration.
     """
+    from .vapi_service import TOOL_ID
+    
     file_ids = request.data.get('file_ids', [])
 
-    # Get all database tool IDs
+    # Get agent configuration and tool settings
+    agent_config = AgentConfiguration.get_config()
+    tool_settings = agent_config.tool_settings or {}
+    
+    # Helper function to check if a tool is enabled
+    def is_tool_enabled(tool_id):
+        return tool_settings.get(tool_id, {}).get('enabled', True)  # Default enabled
+
+    # Get all database tool IDs (filtered by enabled status)
     all_db_records = ConnectedDatabase.objects.all()
     dynamic_tool_ids = []
     for record in all_db_records:
-        dynamic_tool_ids.extend(record.vapi_tool_ids)
+        for tool_id in record.vapi_tool_ids:
+            if is_tool_enabled(tool_id):
+                dynamic_tool_ids.append(tool_id)
 
-    # Get all active human expert transfer tool IDs
-    human_expert_tool_ids = list(
-        HumanExpert.objects.filter(is_active=True).values_list('vapi_tool_id', flat=True)
-    )
+    # Get all active human expert transfer tool IDs (filtered by enabled status)
+    human_expert_tool_ids = []
+    for expert in HumanExpert.objects.filter(is_active=True):
+        if is_tool_enabled(expert.vapi_tool_id):
+            human_expert_tool_ids.append(expert.vapi_tool_id)
     
-    # Combine database tools and human expert transfer tools
+    # Filter base TOOL_IDs based on enabled status
+    enabled_base_tool_ids = [tid for tid in TOOL_ID if is_tool_enabled(tid)]
+    
+    # Combine all enabled tools
     all_tool_ids = dynamic_tool_ids + human_expert_tool_ids
-    print(f"📞 Starting inbound agent with tool IDs: {all_tool_ids}")
+    print(f"📞 Starting inbound agent with enabled tool IDs: {enabled_base_tool_ids + all_tool_ids}")
     print(f"👤 Human Expert Tool IDs: {human_expert_tool_ids}")
+    print(f"🤖 Using Agent: {agent_config.name}")
 
     service = VAPIService()
-    agent_response = service.start_inbound_agent(all_tool_ids, file_ids)
+    agent_response = service.start_inbound_agent(
+        all_tool_ids, 
+        file_ids,
+        agent_name=agent_config.name,
+        agent_description=agent_config.description,
+        enabled_base_tool_ids=enabled_base_tool_ids
+    )
 
     if agent_response:
         assistant_id = agent_response.get('assistant_id') or agent_response.get('id')
@@ -1177,6 +1226,205 @@ def delete_human_expert(request, expert_id):
         
     except Exception as e:
         print(f"❌ Error deleting human expert: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_agent_configuration(request):
+    """
+    Retrieves the agent configuration (name and description).
+    Used by the frontend to display and allow editing of agent settings.
+    """
+    try:
+        config = AgentConfiguration.get_config()
+        
+        print(f"📡 Fetched agent configuration: {config.name}")
+        return Response({
+            'success': True,
+            'name': config.name,
+            'description': config.description,
+            'updated_at': config.updated_at.isoformat() if config.updated_at else None
+        }, status=200)
+    
+    except Exception as e:
+        print(f"❌ Error fetching agent configuration: {str(e)}")
+        return Response({
+            'success': False,
+            'error': 'Failed to retrieve agent configuration'
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_available_tools(request):
+    """
+    Returns all available tools (base tools + database tools + human expert tools).
+    Also returns their current enabled/disabled status from AgentConfiguration.
+    """
+    from .vapi_service import TOOL_ID
+    
+    try:
+        config = AgentConfiguration.get_config()
+        tool_settings = config.tool_settings or {}
+        
+        # Build available tools list
+        available_tools = []
+        
+        # 1. Add base TOOL_IDs with their names
+        base_tool_names = {
+            TOOL_ID[0]: {"name": "Knowledge Query Tool", "description": "Query the knowledge base for information"},
+            TOOL_ID[1]: {"name": "End Call Tool", "description": "End the current call gracefully"}
+        }
+        
+        for tool_id in TOOL_ID:
+            tool_info = base_tool_names.get(tool_id, {"name": f"Base Tool {tool_id[:8]}", "description": "Base system tool"})
+            enabled = tool_settings.get(tool_id, {}).get('enabled', True)  # Default enabled
+            available_tools.append({
+                'id': tool_id,
+                'name': tool_info['name'],
+                'description': tool_info['description'],
+                'type': 'base',
+                'enabled': enabled
+            })
+        
+        # 2. Add database tools
+        db_records = ConnectedDatabase.objects.all()
+        for db in db_records:
+            for tool_id in db.vapi_tool_ids:
+                enabled = tool_settings.get(tool_id, {}).get('enabled', True)
+                available_tools.append({
+                    'id': tool_id,
+                    'name': db.name,
+                    'description': db.summary[:100] + '...' if len(db.summary) > 100 else db.summary,
+                    'type': 'database',
+                    'enabled': enabled
+                })
+        
+        # 3. Add human expert transfer tools
+        human_experts = HumanExpert.objects.filter(is_active=True)
+        for expert in human_experts:
+            enabled = tool_settings.get(expert.vapi_tool_id, {}).get('enabled', True)
+            available_tools.append({
+                'id': expert.vapi_tool_id,
+                'name': f"Transfer to {expert.expert_field}",
+                'description': f"Transfer call to human expert ({expert.phone_number})",
+                'type': 'transfer',
+                'enabled': enabled
+            })
+        
+        print(f"📡 Fetched {len(available_tools)} available tools")
+        return Response({
+            'success': True,
+            'tools': available_tools
+        }, status=200)
+    
+    except Exception as e:
+        print(f"❌ Error fetching available tools: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([AllowAny])
+def update_agent_configuration(request):
+    """
+    Updates the agent configuration (name, description, and/or tool_settings).
+    Used by the frontend to save changes to agent settings.
+    """
+    print(f"\n📝 UPDATE AGENT CONFIGURATION REQUEST")
+    print(f"📦 Request Data: {request.data}")
+    
+    try:
+        name = request.data.get('name')
+        description = request.data.get('description')
+        tool_settings = request.data.get('tool_settings')
+        
+        if not name and not description and tool_settings is None:
+            return Response({
+                'success': False,
+                'error': 'At least one of name, description, or tool_settings is required'
+            }, status=400)
+        
+        config = AgentConfiguration.get_config()
+        
+        if name:
+            config.name = name.strip()
+        if description:
+            config.description = description.strip()
+        if tool_settings is not None:
+            # Merge with existing settings
+            existing_settings = config.tool_settings or {}
+            existing_settings.update(tool_settings)
+            config.tool_settings = existing_settings
+        
+        config.save()
+        
+        print(f"✅ Agent configuration updated: {config.name}")
+        
+        return Response({
+            'success': True,
+            'name': config.name,
+            'description': config.description,
+            'tool_settings': config.tool_settings,
+            'updated_at': config.updated_at.isoformat(),
+            'message': 'Agent configuration updated successfully'
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error updating agent configuration: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([AllowAny])
+def update_tool_status(request):
+    """
+    Updates the enabled/disabled status of a specific tool.
+    """
+    print(f"\n🔧 UPDATE TOOL STATUS REQUEST")
+    print(f"📦 Request Data: {request.data}")
+    
+    try:
+        tool_id = request.data.get('tool_id')
+        enabled = request.data.get('enabled')
+        
+        if not tool_id or enabled is None:
+            return Response({
+                'success': False,
+                'error': 'tool_id and enabled are required'
+            }, status=400)
+        
+        config = AgentConfiguration.get_config()
+        tool_settings = config.tool_settings or {}
+        
+        # Update the specific tool's enabled status
+        if tool_id not in tool_settings:
+            tool_settings[tool_id] = {}
+        tool_settings[tool_id]['enabled'] = enabled
+        
+        config.tool_settings = tool_settings
+        config.save()
+        
+        print(f"✅ Tool {tool_id} status updated to: {enabled}")
+        
+        return Response({
+            'success': True,
+            'tool_id': tool_id,
+            'enabled': enabled,
+            'message': f'Tool status updated successfully'
+        }, status=200)
+        
+    except Exception as e:
+        print(f"❌ Error updating tool status: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)

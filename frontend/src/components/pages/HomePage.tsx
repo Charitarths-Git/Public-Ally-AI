@@ -41,78 +41,88 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [isCalling, setIsCalling] = useState(false);
   const [activeFileIds, setActiveFileIds] = useState<string[]>([]);
   const [sessionInProgress, setSessionInProgress] = useState(false);
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [inboundAgentActive, setInboundAgentActive] = useState(false);
+  const [isStartingInbound, setIsStartingInbound] = useState(false);
 
   const triggerNextCall = async () => {
+    const nextPerson = callingQueue.find(entry => entry.status === 'pending');
+
+    if (!nextPerson) {
+      alert("No more pending calls in the queue!");
+      return;
+    }
+
     setIsCalling(true);
     setSessionInProgress(true);
 
+    setCallingQueue(prev => prev.map(entry => 
+      entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
+    ));
+
     try {
-      // Start session by creating permanent assistant for inbound calls
-      const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {});
+      const response = await axios.post('http://127.0.0.1:8000/api/start-outbound-calling/', {
+        phone_number: nextPerson.phone.replace(/\s+/g, ''),
+        file_ids: activeFileIds
+      });
 
       if (response.data.success) {
-        const sessionId = response.data.session_id;
-        const assistantId = response.data.assistant_id;
-        setCurrentSessionId(sessionId);
-        console.log('Session started successfully:', {
-          session_id: sessionId,
-          assistant_id: assistantId
-        });
-        alert(`Session started! Assistant is now ready to receive inbound calls.\nSession ID: ${sessionId}`);
-      } else {
-        throw new Error(response.data.error || 'Failed to start session');
+        console.log('Outbound call initiated successfully:', response.data.session_id);
       }
     } catch (error: any) {
       console.error("VAPI/Django Error:", error.response?.data || error.message);
-      const errorMessage = error.response?.data?.error || error.message || "Server error";
-      alert("Failed to start session: " + errorMessage);
+      alert("Failed to start outbound call: " + (error.response?.data?.error || "Server error"));
+      
+      setCallingQueue(prev => prev.map(entry => 
+        entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
+      ));
       setSessionInProgress(false);
     } finally {
       setIsCalling(false);
     }
   };
 
-  const endSession = async () => {
-    if (!currentSessionId) {
-      // Try to get session status from backend
-      try {
-        const statusResponse = await axios.get('http://127.0.0.1:8000/api/session-status/');
-        if (statusResponse.data.is_active && statusResponse.data.session_id) {
-          setCurrentSessionId(statusResponse.data.session_id);
-        }
-      } catch (error) {
-        console.error("Could not fetch session status:", error);
+  const startInboundAgent = async () => {
+    setIsStartingInbound(true);
+    
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/start-inbound-agent/', {
+        file_ids: activeFileIds
+      });
+
+      if (response.data.success) {
+        console.log('Inbound agent started successfully:', response.data.assistant_id);
+        setInboundAgentActive(true);
+        alert('Inbound agent activated successfully! The system is now ready to receive calls.');
       }
+    } catch (error: any) {
+      console.error("VAPI/Django Error:", error.response?.data || error.message);
+      alert("Failed to start inbound agent: " + (error.response?.data?.error || "Server error"));
+    } finally {
+      setIsStartingInbound(false);
     }
+  };
 
-    if (currentSessionId) {
-      try {
-        setIsCalling(true);
-        const response = await axios.post('http://127.0.0.1:8000/api/stop-calling/', {
-          session_id: currentSessionId
-        });
-
-        if (response.data.success) {
-          console.log('Session ended successfully:', response.data);
-          alert('Session ended successfully. Assistant has been deleted.');
-        } else {
-          throw new Error(response.data.error || 'Failed to end session');
-        }
-      } catch (error: any) {
-        console.error("Error ending session:", error.response?.data || error.message);
-        alert("Failed to end session: " + (error.response?.data?.error || error.message || "Server error"));
-      } finally {
-        setIsCalling(false);
+  const stopInboundAgent = async () => {
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/stop-calling/', {});
+      
+      if (response.data.success) {
+        setInboundAgentActive(false);
+        alert('Inbound agent stopped successfully.');
       }
+    } catch (error: any) {
+      console.error("Error stopping inbound agent:", error.response?.data || error.message);
+      alert("Failed to stop inbound agent: " + (error.response?.data?.error || "Server error"));
     }
+  };
 
+  const endSession = () => {
     // Mark all calling entries as completed
     setCallingQueue(prev => prev.map(entry => 
       entry.status === 'calling' ? { ...entry, status: 'completed' } : entry
     ));
     setSessionInProgress(false);
-    setCurrentSessionId(null);
+    setIsCalling(false);
   };
 
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([
@@ -210,39 +220,77 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           </p>
         </div>
 
-        <motion.button
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
-          style={{ 
-            backgroundColor: sessionInProgress 
-              ? '#dc2626' 
-              : (isCalling || nextCallIndex === -1) 
-              ? '#9ca3af' 
-              : accentColor,
-            cursor: (!sessionInProgress && (isCalling || nextCallIndex === -1)) ? 'not-allowed' : 'pointer'
-          }}
-          whileHover={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
-          whileTap={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 0.95 } : {}}
-          title={sessionInProgress ? "End current session" : nextCallIndex === -1 ? "No pending numbers in queue" : "Start calling queued numbers"}
-          disabled={!sessionInProgress && (isCalling || nextCallIndex === -1)}
-          onClick={sessionInProgress ? endSession : triggerNextCall}
-        >
-          {sessionInProgress ? (
-            <>
-              <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>End Session</span>
-            </>
-          ) : isCalling ? (
-            <>
-              <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
-              <span>Connecting...</span>
-            </>
-          ) : (
-            <>
-              <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span>{nextCallIndex === -1 ? 'Queue Empty' : 'Start Session'}</span>
-            </>
-          )}
-        </motion.button>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          {/* Outbound Calling Button */}
+          <motion.button
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
+            style={{ 
+              backgroundColor: sessionInProgress 
+                ? '#dc2626' 
+                : (isCalling || nextCallIndex === -1) 
+                ? '#9ca3af' 
+                : accentColor,
+              cursor: (!sessionInProgress && (isCalling || nextCallIndex === -1)) ? 'not-allowed' : 'pointer'
+            }}
+            whileHover={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
+            whileTap={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 0.95 } : {}}
+            title={sessionInProgress ? "End current session" : nextCallIndex === -1 ? "No pending numbers in queue" : "Start calling queued numbers"}
+            disabled={!sessionInProgress && (isCalling || nextCallIndex === -1)}
+            onClick={sessionInProgress ? endSession : triggerNextCall}
+          >
+            {sessionInProgress ? (
+              <>
+                <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>End Outbound</span>
+              </>
+            ) : isCalling ? (
+              <>
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>{nextCallIndex === -1 ? 'Queue Empty' : 'Start Outbound Calling'}</span>
+              </>
+            )}
+          </motion.button>
+
+          {/* Inbound Agent Button */}
+          <motion.button
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
+            style={{ 
+              backgroundColor: inboundAgentActive 
+                ? '#dc2626' 
+                : isStartingInbound
+                ? '#9ca3af'
+                : secondaryColor || '#10b981',
+              cursor: isStartingInbound ? 'not-allowed' : 'pointer'
+            }}
+            whileHover={!isStartingInbound ? { scale: 1.05 } : {}}
+            whileTap={!isStartingInbound ? { scale: 0.95 } : {}}
+            title={inboundAgentActive ? "Stop inbound agent" : "Start inbound agent to receive calls"}
+            disabled={isStartingInbound}
+            onClick={inboundAgentActive ? stopInboundAgent : startInboundAgent}
+          >
+            {inboundAgentActive ? (
+              <>
+                <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Stop Inbound Agent</span>
+              </>
+            ) : isStartingInbound ? (
+              <>
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+                <span>Starting...</span>
+              </>
+            ) : (
+              <>
+                <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span>Start Inbound Agent</span>
+              </>
+            )}
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* User Details */}

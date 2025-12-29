@@ -58,102 +58,72 @@ class CallHistoryViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['POST'])
-def start_calling(request):
+def start_outbound_calling(request):
     """
-    Start a calling session by creating a permanent Vapi assistant for inbound calls.
-    This assistant will handle incoming calls to the configured phone number.
+    Start outbound calling - initiates a call to a phone number.
     """
-    print("\n" + "="*50)
-    print("🚀 START SESSION REQUEST RECEIVED")
-    print("="*50)
-    print(f"📦 Request Data: {request.data}")
-    print("="*50 + "\n")
+    phone_number = request.data.get('phone_number')
+    file_ids = request.data.get('file_ids', [])
     
-    try:
-        # Check if there's already an active session
-        active_session = CallingSession.objects.filter(is_active=True).first()
-        if active_session:
-            print(f"⚠️ Active session already exists: {active_session.session_id}")
-            return Response({
-                'success': False,
-                'error': 'An active session already exists. Please end it first.',
-                'session_id': active_session.session_id
-            }, status=400)
-        
-        # Get all database tool IDs
-        all_db_records = ConnectedDatabase.objects.all()
-        dynamic_tool_ids = []
-        for record in all_db_records:
-            dynamic_tool_ids.extend(record.vapi_tool_ids)
-        
-        # Get all file IDs from knowledge documents
-        knowledge_docs = KnowledgeDocument.objects.all()
-        file_ids = [doc.vapi_file_id for doc in knowledge_docs if doc.vapi_file_id]
-        
-        print(f"📋 Database Tool IDs: {dynamic_tool_ids}")
-        print(f"📄 File IDs: {file_ids}")
-        
-        # Create permanent assistant for inbound calls
-        service = VAPIService()
-        
-        # Check if assistant already exists
-        existing_assistant_id = service.get_existing_assistant_id("Sahayaki")
-        
-        if existing_assistant_id:
-            print(f"♻️ Using existing assistant: {existing_assistant_id}")
-            assistant_id = existing_assistant_id
-        else:
-            # Create new permanent assistant
-            assistant_response = service.create_permanent_assistant(
-                db_tool_ids=dynamic_tool_ids,
-                file_ids=file_ids
-            )
-            
-            if 'error' in assistant_response:
-                print(f"❌ Failed to create assistant: {assistant_response.get('error')}")
-                return Response({
-                    'success': False,
-                    'error': f"Failed to create assistant: {assistant_response.get('error')}"
-                }, status=500)
-            
-            assistant_id = assistant_response.get('id')
-            if not assistant_id:
-                return Response({
-                    'success': False,
-                    'error': 'Assistant created but no ID returned'
-                }, status=500)
-        
-        # Generate a unique session ID
-        import uuid
-        session_id = str(uuid.uuid4())
-        
-        # Create a session in your database to track the assistant
+    if not phone_number:
+        return Response({'success': False, 'error': 'phone_number is required'}, status=400)
+
+    # Get all database tool IDs
+    all_db_records = ConnectedDatabase.objects.all()
+    dynamic_tool_ids = []
+    for record in all_db_records:
+        dynamic_tool_ids.extend(record.vapi_tool_ids)
+
+    service = VAPIService()
+    call_response = service.start_outbound_call(phone_number, dynamic_tool_ids, file_ids)
+
+    if call_response:
+        # Create a session in your database to track the call
         session = CallingSession.objects.create(
-            session_id=session_id,
-            assistant_id=assistant_id,
+            session_id=call_response.get('id'),
             is_active=True
         )
-        
-        print(f"✅ Session started successfully!")
-        print(f"   Session ID: {session_id}")
-        print(f"   Assistant ID: {assistant_id}")
-        print("="*50 + "\n")
-        
         return Response({
-            'success': True,
-            'session_id': session_id,
-            'assistant_id': assistant_id,
-            'message': 'Permanent assistant created for inbound calls'
+            'success': True, 
+            'session_id': session.session_id,
+            'call_id': call_response.get('id')
         })
+    
+    return Response({'success': False, 'error': 'VAPI Outbound Call Failed'}, status=500)
+
+@api_view(['POST'])
+def start_inbound_agent(request):
+    """
+    Start inbound agent - creates and activates an assistant to handle incoming calls.
+    """
+    file_ids = request.data.get('file_ids', [])
+
+    # Get all database tool IDs
+    all_db_records = ConnectedDatabase.objects.all()
+    dynamic_tool_ids = []
+    for record in all_db_records:
+        dynamic_tool_ids.extend(record.vapi_tool_ids)
+
+    service = VAPIService()
+    agent_response = service.start_inbound_agent(dynamic_tool_ids, file_ids)
+
+    if agent_response:
+        assistant_id = agent_response.get('assistant_id') or agent_response.get('id')
         
-    except Exception as e:
-        print(f"❌ Error starting session: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
+        # Create a session in your database to track the inbound agent
+        # Use assistant_id as session_id since CallingSession doesn't have assistant_id field
+        session = CallingSession.objects.create(
+            session_id=assistant_id,
+            is_active=True
+        )
         return Response({
-            'success': False,
-            'error': str(e)
-        }, status=500)
+            'success': True, 
+            'session_id': session.session_id,
+            'assistant_id': assistant_id,
+            'message': 'Inbound agent activated successfully'
+        })
+    
+    return Response({'success': False, 'error': 'VAPI Inbound Agent Failed'}, status=500)
 
 @api_view(['GET'])
 def get_documents(request):
@@ -167,69 +137,29 @@ def get_documents(request):
     
 @api_view(['POST'])
 def stop_calling(request):
-    """
-    Stop the calling session by deleting the permanent Vapi assistant.
-    """
+    """Stop the calling agent"""
+    
     print("\n" + "="*50)
-    print("🛑 STOP SESSION REQUEST RECEIVED")
+    print("🛑 STOP CALLING REQUEST RECEIVED")
     print("="*50)
     print(f"📦 Request Data: {request.data}")
     print("="*50 + "\n")
     
     try:
         session_id = request.data.get('session_id')
-        
-        # If session_id provided, use it; otherwise find active session
         if session_id:
-            try:
-                session = CallingSession.objects.get(session_id=session_id)
-            except CallingSession.DoesNotExist:
-                return Response({
-                    'success': False,
-                    'error': f'Session {session_id} not found'
-                }, status=404)
-        else:
-            # Find active session
-            session = CallingSession.objects.filter(is_active=True).first()
-            if not session:
-                return Response({
-                    'success': False,
-                    'error': 'No active session found'
-                }, status=404)
-        
-        assistant_id = session.assistant_id
-        
-        # Delete the assistant from Vapi
-        if assistant_id:
-            service = VAPIService()
-            deleted = service.delete_assistant(assistant_id)
+            session = CallingSession.objects.get(session_id=session_id)
+            session.is_active = False
+            session.ended_at = timezone.now()
+            session.save()
             
-            if not deleted:
-                print(f"⚠️ Failed to delete assistant {assistant_id}, but continuing with session cleanup")
-        else:
-            print("⚠️ No assistant_id found in session, skipping assistant deletion")
-        
-        # Update session to inactive
-        session.is_active = False
-        session.ended_at = timezone.now()
-        session.save()
-        
-        print(f"✅ Session stopped successfully!")
-        print(f"   Session ID: {session.session_id}")
-        print(f"   Assistant ID: {assistant_id}")
-        print("="*50 + "\n")
-        
         return Response({
             'success': True,
-            'message': 'Session stopped and assistant deleted successfully',
-            'session_id': session.session_id,
-            'assistant_id': assistant_id
+            'message': 'Calling agent stopped successfully'
         }, status=status.HTTP_200_OK)
         
     except Exception as e:
-        print(f"❌ Error stopping session: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
+        print(f"❌ Error stopping calling: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)

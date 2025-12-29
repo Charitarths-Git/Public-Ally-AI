@@ -7,7 +7,8 @@ router.register(r'call-history', views.CallHistoryViewSet, basename='call-histor
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('start-calling/', views.start_calling, name='start-calling'),
+    path('start-outbound-calling/', views.start_outbound_calling, name='start-outbound-calling'),
+    path('start-inbound-agent/', views.start_inbound_agent, name='start-inbound-agent'),
     path('stop-calling/', views.stop_calling, name='stop-calling'),
     path('upload-document/', views.upload_document, name='upload-document'),
     path('connect-database/', views.connect_database, name='connect-database'),

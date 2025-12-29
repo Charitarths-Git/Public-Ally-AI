@@ -2,8 +2,13 @@ import requests
 import os
 import re
 from dotenv import load_dotenv
+from google import genai
+from google.api_core.exceptions import ResourceExhausted
+import time
 
 load_dotenv()
+
+gemini_client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
 TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c","ffce1d40-0d91-4eca-aec3-8520ad1bf46d"]
 
@@ -57,12 +62,69 @@ class VAPIService:
             }
         }
 
+    def call_gemini(self, prompt: str, model="gemini-2.5-flash", retries=3) -> str:
+        for attempt in range(retries):
+            try:
+                print(f"🧠 Gemini call ({model}) attempt {attempt + 1}/{retries}")
+
+                response = gemini_client.models.generate_content(
+                    model=model,
+                    contents=prompt
+                )
+
+                if response.text:
+                    return response.text.strip()
+
+                raise ValueError("Empty Gemini response")
+
+            except ResourceExhausted:
+                wait = 2 ** attempt
+                print(f"⚠️ Gemini quota hit, retrying in {wait}s")
+                time.sleep(wait)
+
+            except Exception as e:
+                print("❌ Gemini error:", e)
+                break
+
+        # IMPORTANT: deterministic failure
+        return "{}"
+    
+    def extract_json(text: str) -> str:
+        """
+        Robustly extract JSON from LLM output.
+        Handles:
+        - ```json ... ```
+        - ``` ... ```
+        - Leading/trailing noise
+        """
+        if not text:
+            return ""
+
+        text = text.strip()
+
+        # Remove fenced code blocks
+        if text.startswith("```"):
+            # Remove opening fence
+            text = text.split("```", 1)[1]
+            # Remove optional language tag (e.g., 'json')
+            text = text.lstrip()
+            if text.startswith("json"):
+                text = text[4:]
+            # Remove closing fence
+            if "```" in text:
+                text = text.split("```", 1)[0]
+
+        return text.strip()
+
+
+
     def start_outbound_call(self, phone_number, db_tool_ids, file_ids=None, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
         """
         Initiates an outbound call to a phone number.
         Uses agent_name and agent_description if provided.
         Uses enabled_base_tool_ids instead of default TOOL_ID if provided.
         """
+
         if db_tool_ids is None:
             db_tool_ids = []
         if file_ids is None:
@@ -110,7 +172,7 @@ class VAPIService:
                             retrieve it using the appropriate knowledge base or tool before responding.
                             - Always wait for the tool response before continuing.
                             - Use at most one tool per turn.
-
+                            
                             TRANSFER TO HUMAN:
                             - If the user explicitly asks to speak to a human, expert, officer, or agent,
                             invoke `transfer_call_tool` immediately.
@@ -141,9 +203,9 @@ class VAPIService:
                 },
                 "voice": {"provider": "vapi", "voiceId": "Neha"},
                 "transcriber": {
-                    "language": "English",
                     "model": "gemini-2.0-flash",
-                    "provider": "google"
+                    "provider": "google",
+                    "language": "multi"
                 },
                 # Server configuration for webhook
                 "server": {
@@ -179,6 +241,7 @@ class VAPIService:
         Uses enabled_base_tool_ids instead of default TOOL_ID if provided.
         Returns the assistant ID if successful.
         """
+        user_prompt = self.call_gemini("prompt need be edited for inbound agent")
         if db_tool_ids is None:
             db_tool_ids = []
         if file_ids is None:
@@ -210,6 +273,10 @@ class VAPIService:
                         {
                             "role": "system",
                             "content": f"You are {name}. {description} You are a polite government-style inbound assistant. Context: {self.llm_context}. Answer clearly and respectfully. Do not ask for sensitive personal information. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information."
+                        },
+                        {
+                            "role": "user",
+                            "content": user_prompt
                         }
                     ],
                     "temperature": 0.4

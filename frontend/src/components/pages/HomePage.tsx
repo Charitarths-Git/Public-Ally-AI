@@ -213,7 +213,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     { id: 'human', label: 'Add Human Agent to Call', description: 'Enable AI to escalate and add a human agent during calls', enabled: true },
   ]);
 
-  const outboundNumber = '+91 11000 00001';
+  const outboundNumber = '+1 225-777-9567';
 
   const handleSaveName = async () => {
     if (!tempName.trim()) return;
@@ -695,7 +695,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         transition={{ delay: 0.3 }}
         className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60' : ''}`}
       >
-        <h3 className="text-lg sm:text-xl mb-3" style={{ color: accentColor }}>Official Outbound Calling Number</h3>
+        <h3 className="text-lg sm:text-xl mb-3" style={{ color: accentColor }}>Official Outbound and Inbound Calling Number</h3>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg">
           <Phone className="w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" style={{ color: accentColor }} />
           <span className="text-lg sm:text-xl break-all">{outboundNumber}</span>

@@ -43,7 +43,16 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       case 'governance':
         return 'linear-gradient(135deg, #FF9933 0%, #FFFFFF 25%, #138808 50%, #000080 100%)';
       case 'corporate':
-        return 'linear-gradient(135deg, #FFFFFF 0%, #E3F2FD 50%, #1976D2 100%)';
+        return `
+          linear-gradient(
+            135deg,
+            #1E3A5F 0%,
+            #2B4F81 20%,
+            #3A6EA5 40%,
+            #1F3C88 65%,
+            #162447 100%
+          )
+        `;
       default:
         return 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
     }
@@ -121,7 +130,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         >
           <h1 className={`text-5xl mb-3 transition-colors duration-500 ${
             currentTheme === 'governance' ? 'text-orange-700' : 
-            currentTheme === 'corporate' ? 'text-blue-700' : 
+            currentTheme === 'corporate' ? 'text-blue-900' : 
             'text-white'
           }`}>
             LokMitra-AI

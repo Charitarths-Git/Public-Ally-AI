@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Edit2, Check, X, Plus, Phone, Upload, Database as DatabaseIcon, Settings, Info } from 'lucide-react';
+import { Edit2, Check, X, Plus, Phone, Upload, Database as DatabaseIcon, Settings, Info, PhoneOff, AlertCircle } from 'lucide-react';
 import type { UserSession } from '../../App';
 import AddNumberModal from '../modals/AddNumberModal';
 import UploadDocumentModal from '../modals/UploadDocumentModal';
@@ -40,46 +40,53 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
   const [activeFileIds, setActiveFileIds] = useState<string[]>([]);
+  const [sessionInProgress, setSessionInProgress] = useState(false);
 
   const triggerNextCall = async () => {
-  // 1. Find the next pending person
-  const nextPerson = callingQueue.find(entry => entry.status === 'pending');
+    const nextPerson = callingQueue.find(entry => entry.status === 'pending');
 
-  if (!nextPerson) {
-    alert("No more pending calls in the queue!");
-    return;
-  }
-
-  setIsCalling(true);
-
-  // 2. Update local UI status to 'calling' immediately for feedback
-  setCallingQueue(prev => prev.map(entry => 
-    entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
-  ));
-
-  try {
-    // 3. Hit your Django endpoint
-    const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {
-      phone_number: nextPerson.phone.replace(/\s+/g, ''),
-      file_ids: activeFileIds // Remove spaces for VAPI
-    });
-
-    if (response.data.success) {
-      console.log('Call initiated successfully:', response.data.session_id);
-      // Optional: You could update the entry with the session_id here
+    if (!nextPerson) {
+      alert("No more pending calls in the queue!");
+      return;
     }
-  } catch (error: any) {
-    console.error("VAPI/Django Error:", error.response?.data || error.message);
-    alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
-    
-    // Reset status to pending if it failed
+
+    setIsCalling(true);
+    setSessionInProgress(true);
+
     setCallingQueue(prev => prev.map(entry => 
-      entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
+      entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
     ));
-  } finally {
+
+    try {
+      const response = await axios.post('http://127.0.0.1:8000/api/start-calling/', {
+        phone_number: nextPerson.phone.replace(/\s+/g, ''),
+        file_ids: activeFileIds
+      });
+
+      if (response.data.success) {
+        console.log('Call initiated successfully:', response.data.session_id);
+      }
+    } catch (error: any) {
+      console.error("VAPI/Django Error:", error.response?.data || error.message);
+      alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
+      
+      setCallingQueue(prev => prev.map(entry => 
+        entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
+      ));
+      setSessionInProgress(false);
+    } finally {
+      setIsCalling(false);
+    }
+  };
+
+  const endSession = () => {
+    // Mark all calling entries as completed
+    setCallingQueue(prev => prev.map(entry => 
+      entry.status === 'calling' ? { ...entry, status: 'completed' } : entry
+    ));
+    setSessionInProgress(false);
     setIsCalling(false);
-  }
-};
+  };
 
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([
     { id: '1', name: 'Kartavya', phone: '+918668944955', notes: 'Regarding govt_schemes info', status: 'pending' },
@@ -104,8 +111,8 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   };
 
   const handleUploadSuccess = (newFileId: string) => {
-  setActiveFileIds(prev => [...prev, newFileId]);
-};
+    setActiveFileIds(prev => [...prev, newFileId]);
+  };
 
   const handleCancelName = () => {
     setTempName(aiName);
@@ -134,6 +141,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   };
 
   const toggleCapability = (id: string) => {
+    if (sessionInProgress) return;
     setCapabilities(capabilities.map(cap =>
       cap.id === id ? { ...cap, enabled: !cap.enabled } : cap
     ));
@@ -143,6 +151,23 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   return (
     <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 px-4 sm:px-6 lg:px-8">
+      {/* Session In Progress Alert */}
+      <AnimatePresence>
+        {sessionInProgress && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-orange-100 border-2 border-orange-500 rounded-xl p-4 flex items-center gap-3 shadow-lg"
+          >
+            <AlertCircle className="w-6 h-6 text-orange-600 flex-shrink-0" />
+            <p className="text-sm sm:text-base text-orange-800 font-medium">
+              <strong>Session in Progress:</strong> No modifications allowed while calling is active
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -161,30 +186,35 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         <motion.button
           className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
           style={{ 
-            // Changes color to gray if a call is in progress or no one is left to call
-            backgroundColor: isCalling || nextCallIndex === -1 ? '#9ca3af' : accentColor,
-            cursor: isCalling || nextCallIndex === -1 ? 'not-allowed' : 'pointer'
+            backgroundColor: sessionInProgress 
+              ? '#dc2626' 
+              : (isCalling || nextCallIndex === -1) 
+              ? '#9ca3af' 
+              : accentColor,
+            cursor: (!sessionInProgress && (isCalling || nextCallIndex === -1)) ? 'not-allowed' : 'pointer'
           }}
-          // Disables hover animation if the button is inactive
-          whileHover={(!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
-          whileTap={(!isCalling && nextCallIndex !== -1) ? { scale: 0.95 } : {}}
-          title={nextCallIndex === -1 ? "No pending numbers in queue" : "Start calling queued numbers"}
-          
-          // Disable the HTML button attribute
-          disabled={isCalling || nextCallIndex === -1}
-          
-          onClick={triggerNextCall}
+          whileHover={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
+          whileTap={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 0.95 } : {}}
+          title={sessionInProgress ? "End current session" : nextCallIndex === -1 ? "No pending numbers in queue" : "Start calling queued numbers"}
+          disabled={!sessionInProgress && (isCalling || nextCallIndex === -1)}
+          onClick={sessionInProgress ? endSession : triggerNextCall}
         >
-          {isCalling ? (
-            // Shows a loading spinner or pulsing icon during the API request
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+          {sessionInProgress ? (
+            <>
+              <PhoneOff className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>End Session</span>
+            </>
+          ) : isCalling ? (
+            <>
+              <Phone className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+              <span>Connecting...</span>
+            </>
           ) : (
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+            <>
+              <Phone className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span>{nextCallIndex === -1 ? 'Queue Empty' : 'Start Session'}</span>
+            </>
           )}
-          
-          <span>
-            {isCalling ? 'Connecting...' : nextCallIndex === -1 ? 'Queue Empty' : 'Start Calling'}
-          </span>
         </motion.button>
       </motion.div>
 
@@ -193,7 +223,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <h2 className="text-xl sm:text-2xl mb-4" style={{ color: accentColor }}>User Details</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
@@ -217,7 +247,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <h2 className="text-xl sm:text-2xl mb-4 flex items-center gap-2" style={{ color: accentColor }}>
           <Settings className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -345,7 +375,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60' : ''}`}
       >
         <h3 className="text-lg sm:text-xl mb-3" style={{ color: accentColor }}>Official Outbound Calling Number</h3>
         <div className="flex flex-wrap items-center gap-2 sm:gap-3 bg-gray-50 p-3 sm:p-4 rounded-lg">
@@ -366,11 +396,14 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           <h3 className="text-lg sm:text-xl" style={{ color: accentColor }}>Calling Queue</h3>
           <motion.button
             onClick={() => setShowAddNumberModal(true)}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg text-sm sm:text-base"
+            disabled={sessionInProgress}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg text-sm sm:text-base ${
+              sessionInProgress ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             style={{ backgroundColor: accentColor }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            title="Add new number to queue"
+            whileHover={!sessionInProgress ? { scale: 1.05 } : {}}
+            whileTap={!sessionInProgress ? { scale: 0.95 } : {}}
+            title={sessionInProgress ? "Cannot add numbers during session" : "Add new number to queue"}
           >
             <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             Add Number
@@ -383,12 +416,12 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
               key={entry.id}
               className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
                 entry.status === 'calling'
-                  ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200' // Highlighting the active call
+                  ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200'
                   : entry.status === 'completed'
-                  ? 'bg-gray-50 border-green-200 opacity-75' // Styling for finished calls
+                  ? 'bg-gray-50 border-green-200 opacity-75'
                   : index === nextCallIndex
-                  ? 'bg-blue-50 border-blue-500 shadow-sm' // Next call in line
-                  : 'bg-gray-50 border-gray-200' // Default pending
+                  ? 'bg-blue-50 border-blue-500 shadow-sm'
+                  : 'bg-gray-50 border-gray-200'
               }`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -399,7 +432,6 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="text-base sm:text-lg font-medium break-words">{entry.name}</h4>
                     
-                    {/* Dynamic Status Badges */}
                     {entry.status === 'calling' && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white text-[10px] sm:text-xs rounded-full uppercase tracking-wider animate-pulse font-bold">
                         <Phone className="w-3 h-3" /> Calling...
@@ -442,7 +474,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full sm:flex-1">
@@ -468,7 +500,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="w-full sm:flex-1">
@@ -494,7 +526,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white rounded-2xl shadow-lg p-4 sm:p-6"
+        className={`bg-white rounded-2xl shadow-lg p-4 sm:p-6 ${sessionInProgress ? 'opacity-60 pointer-events-none' : ''}`}
       >
         <h3 className="text-lg sm:text-xl mb-4" style={{ color: accentColor }}>AI Capabilities & Controls</h3>
         <div className="space-y-4">
@@ -508,7 +540,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                 onClick={() => toggleCapability(capability.id)}
                 className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${capability.enabled ? 'bg-green-500' : 'bg-gray-300'
                   }`}
-                whileTap={{ scale: 0.95 }}
+                whileTap={!sessionInProgress ? { scale: 0.95 } : {}}
                 title={`Toggle ${capability.label}`}
               >
                 <motion.div

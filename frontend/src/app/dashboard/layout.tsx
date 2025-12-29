@@ -33,12 +33,10 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
   
-  // Notification state
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastCallId, setLastCallId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check for user session
     const session = localStorage.getItem('userSession');
     if (session) {
       setUserSession(JSON.parse(session));
@@ -47,21 +45,16 @@ export default function DashboardLayout({
     }
   }, [router]);
 
-  // Poll for new calls globally
   useEffect(() => {
     const fetchCallHistory = async () => {
       try {
         const response = await fetch('http://localhost:8000/api/call-history/');
         if (response.ok) {
           const data = await response.json();
-          
           if (data.length > 0) {
             const latestCall = data[0];
-            
             if (latestCall.call_id !== lastCallId) {
               if (lastCallId !== null) {
-                // Show notification for new call
-                console.log('🔔 New call detected! Showing notification...');
                 const newNotification: Notification = {
                   id: latestCall.call_id,
                   callId: latestCall.call_id,
@@ -79,12 +72,8 @@ export default function DashboardLayout({
       }
     };
 
-    // Initial fetch
     fetchCallHistory();
-    
-    // Poll every 5 seconds
     const interval = setInterval(fetchCallHistory, 5000);
-    
     return () => clearInterval(interval);
   }, [lastCallId]);
 
@@ -97,9 +86,7 @@ export default function DashboardLayout({
     router.push('/');
   };
 
-  if (!userSession) {
-    return null; // or loading spinner
-  }
+  if (!userSession) return null;
 
   const isGovernanceTheme = userSession.theme === 'governance';
   const bgGradient = isGovernanceTheme
@@ -110,7 +97,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex overflow-x-hidden" style={{ background: bgGradient }}>
-      {/* Global Notifications */}
+      
       {notifications.map(notification => (
         <CallNotification
           key={notification.id}
@@ -120,9 +107,10 @@ export default function DashboardLayout({
           onClose={() => removeNotification(notification.id)}
         />
       ))}
-      {/* Sidebar - Desktop */}
+
+      {/* Sidebar - Desktop (FIXED) */}
       <motion.aside
-        className="hidden lg:flex lg:flex-col w-72 bg-white shadow-2xl h-screen sticky top-0"
+        className="hidden lg:flex lg:flex-col w-72 bg-white shadow-2xl h-screen fixed left-0 top-0 z-40"
         initial={{ x: -300, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
@@ -136,7 +124,7 @@ export default function DashboardLayout({
           {navItems.map((item, index) => {
             const Icon = item.icon;
             const isActive = pathname === item.path;
-            
+
             return (
               <motion.button
                 key={item.id}
@@ -144,32 +132,20 @@ export default function DashboardLayout({
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${
                   isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
                 }`}
-                style={{
-                  backgroundColor: isActive ? `${accentColor}20` : undefined
-                }}
+                style={{ backgroundColor: isActive ? `${accentColor}20` : undefined }}
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: index * 0.05 }}
                 whileHover={{ x: 4 }}
               >
-                <Icon 
-                  className="w-5 h-5 transition-colors" 
-                  style={{ color: isActive ? accentColor : '#6B7280' }}
-                />
-                <span 
-                  className="transition-colors"
-                  style={{ color: isActive ? accentColor : '#374151' }}
-                >
-                  {item.label}
-                </span>
+                <Icon className="w-5 h-5" style={{ color: isActive ? accentColor : '#6B7280' }} />
+                <span style={{ color: isActive ? accentColor : '#374151' }}>{item.label}</span>
+
                 {isActive && (
                   <motion.div
                     className="absolute left-0 top-0 bottom-0 w-1 rounded-r-full"
                     style={{ backgroundColor: accentColor }}
                     layoutId="activeIndicator"
-                    initial={{ scaleY: 0 }}
-                    animate={{ scaleY: 1 }}
-                    transition={{ duration: 0.3 }}
                   />
                 )}
               </motion.button>
@@ -180,7 +156,7 @@ export default function DashboardLayout({
         <div className="p-4 border-t flex-shrink-0">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-all duration-300"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600"
           >
             <LogOut className="w-5 h-5" />
             <span>Logout</span>
@@ -188,15 +164,12 @@ export default function DashboardLayout({
         </div>
       </motion.aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar*/}
       <AnimatePresence>
         {sidebarOpen && (
           <>
             <motion.div
               className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               onClick={() => setSidebarOpen(false)}
             />
             <motion.aside
@@ -204,9 +177,8 @@ export default function DashboardLayout({
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
-              transition={{ duration: 0.3 }}
             >
-              <div className="p-6 border-b-2 flex items-center justify-between flex-shrink-0" style={{ borderColor: accentColor }}>
+              <div className="p-6 border-b-2 flex items-center justify-between" style={{ borderColor: accentColor }}>
                 <div>
                   <h2 className="text-2xl" style={{ color: accentColor }}>LokMitra-AI</h2>
                   <p className="text-sm text-gray-600 mt-1">AI Voice Partner</p>
@@ -220,7 +192,7 @@ export default function DashboardLayout({
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.path;
-                  
+
                   return (
                     <button
                       key={item.id}
@@ -228,29 +200,22 @@ export default function DashboardLayout({
                         router.push(item.path);
                         setSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
                         isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
                       }`}
-                      style={{
-                        backgroundColor: isActive ? `${accentColor}20` : undefined
-                      }}
+                      style={{ backgroundColor: isActive ? `${accentColor}20` : undefined }}
                     >
-                      <Icon 
-                        className="w-5 h-5" 
-                        style={{ color: isActive ? accentColor : '#6B7280' }}
-                      />
-                      <span style={{ color: isActive ? accentColor : '#374151' }}>
-                        {item.label}
-                      </span>
+                      <Icon className="w-5 h-5" style={{ color: isActive ? accentColor : '#6B7280' }} />
+                      <span style={{ color: isActive ? accentColor : '#374151' }}>{item.label}</span>
                     </button>
                   );
                 })}
               </nav>
 
-              <div className="p-4 border-t flex-shrink-0">
+              <div className="p-4 border-t">
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600 transition-all"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-red-600"
                 >
                   <LogOut className="w-5 h-5" />
                   <span>Logout</span>
@@ -261,9 +226,8 @@ export default function DashboardLayout({
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden max-w-full">
-        {/* Mobile Header */}
+      {/* Main Content*/}
+      <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden max-w-full lg:ml-72">
         <div className="lg:hidden bg-white shadow-md p-4 flex items-center justify-between">
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6" style={{ color: accentColor }} />
@@ -272,13 +236,11 @@ export default function DashboardLayout({
           <div className="w-6" />
         </div>
 
-        {/* Page Content */}
         <main className="flex-1 p-4 lg:p-8 overflow-x-hidden max-w-full">
           <motion.div
             key={pathname}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
           >
             {children}

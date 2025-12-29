@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Edit2, Check, X, Plus, Phone, Upload, Database as DatabaseIcon, Settings, Info, PhoneOff, AlertCircle, UserPlus, Trash2 } from 'lucide-react';
-import type { UserSession } from '../../App';
+import type { UserSession } from '../../types';
 import AddNumberModal from '../modals/AddNumberModal';
 import UploadDocumentModal from '../modals/UploadDocumentModal';
 import ConnectDatabaseModal from '../modals/ConnectDatabaseModal';
@@ -29,15 +29,22 @@ interface AICapability {
   enabled: boolean;
 }
 
+interface HumanExpertData {
+  id: number;
+  phone_number: string;
+  expert_field: string;
+  tool_id: string;
+  created_at?: string;
+}
+
 export default function HomePage({ userSession, accentColor, secondaryColor }: HomePageProps) {
   const [aiName, setAiName] = useState('LokMitra');
   const [isEditingName, setIsEditingName] = useState(false);
   const [tempName, setTempName] = useState(aiName);
-  const [escalationNumber, setEscalationNumber] = useState('');
-  const [expertField, setExpertField] = useState('');
-  const [humanExpertToolId, setHumanExpertToolId] = useState<string | null>(null);
+  const [humanExpert, setHumanExpert] = useState<HumanExpertData | null>(null);
   const [showHumanExpertModal, setShowHumanExpertModal] = useState(false);
   const [isCreatingExpert, setIsCreatingExpert] = useState(false);
+  const [isRemovingExpert, setIsRemovingExpert] = useState(false);
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
@@ -46,6 +53,24 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [sessionInProgress, setSessionInProgress] = useState(false);
   const [inboundAgentActive, setInboundAgentActive] = useState(false);
   const [isStartingInbound, setIsStartingInbound] = useState(false);
+
+  // Fetch human experts on component mount
+  useEffect(() => {
+    const fetchHumanExperts = async () => {
+      try {
+        const response = await axios.get('http://127.0.0.1:8000/api/human-experts/');
+        if (response.data && response.data.length > 0) {
+          // Use the first active human expert
+          setHumanExpert(response.data[0]);
+          console.log('Loaded human expert from backend:', response.data[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching human experts:', error);
+      }
+    };
+    
+    fetchHumanExperts();
+  }, []);
 
   const triggerNextCall = async () => {
     const nextPerson = callingQueue.find(entry => entry.status === 'pending');
@@ -169,11 +194,14 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       });
       
       if (response.data.success) {
-        setEscalationNumber(data.phoneNumber);
-        setExpertField(data.expertField);
-        setHumanExpertToolId(response.data.tool_id);
+        setHumanExpert({
+          id: response.data.id,
+          phone_number: data.phoneNumber,
+          expert_field: data.expertField,
+          tool_id: response.data.tool_id
+        });
         setShowHumanExpertModal(false);
-        console.log('Human expert tool created:', response.data.tool_id);
+        console.log('Human expert created and saved:', response.data);
       }
     } catch (error: any) {
       console.error('Error creating human expert:', error.response?.data || error.message);
@@ -183,10 +211,24 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     }
   };
 
-  const handleRemoveHumanExpert = () => {
-    setEscalationNumber('');
-    setExpertField('');
-    setHumanExpertToolId(null);
+  const handleRemoveHumanExpert = async () => {
+    if (!humanExpert) return;
+    
+    setIsRemovingExpert(true);
+    
+    try {
+      const response = await axios.delete(`http://127.0.0.1:8000/api/human-experts/${humanExpert.id}/`);
+      
+      if (response.data.success) {
+        setHumanExpert(null);
+        console.log('Human expert removed:', response.data.message);
+      }
+    } catch (error: any) {
+      console.error('Error removing human expert:', error.response?.data || error.message);
+      alert('Failed to remove human expert: ' + (error.response?.data?.error || 'Server error'));
+    } finally {
+      setIsRemovingExpert(false);
+    }
   };
 
   const handleAddNumber = (entry: Omit<QueueEntry, 'id' | 'status'>) => {
@@ -419,33 +461,38 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
             </div>
           </label>
           
-          {escalationNumber ? (
+          {humanExpert ? (
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-gray-200">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-2">
                     <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" style={{ color: accentColor }} />
-                    <span className="text-base sm:text-lg font-medium break-all">{escalationNumber}</span>
+                    <span className="text-base sm:text-lg font-medium break-all">{humanExpert.phone_number}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <UserPlus className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                    <span className="text-sm text-gray-600 break-words">{expertField}</span>
+                    <span className="text-sm text-gray-600 break-words">{humanExpert.expert_field}</span>
                   </div>
-                  {humanExpertToolId && (
+                  {humanExpert.tool_id && (
                     <p className="text-xs text-green-600 mt-2 flex items-center gap-1">
                       <Check className="w-3 h-3" />
-                      Tool configured (ID: {humanExpertToolId.slice(0, 8)}...)
+                      Tool configured (ID: {humanExpert.tool_id.slice(0, 8)}...)
                     </p>
                   )}
                 </div>
                 <motion.button
                   onClick={handleRemoveHumanExpert}
-                  className="p-2 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 flex-shrink-0"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  disabled={isRemovingExpert}
+                  className={`p-2 text-red-500 hover:text-red-700 rounded-lg hover:bg-red-50 flex-shrink-0 ${isRemovingExpert ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  whileHover={!isRemovingExpert ? { scale: 1.05 } : {}}
+                  whileTap={!isRemovingExpert ? { scale: 0.95 } : {}}
                   title="Remove human expert"
                 >
-                  <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {isRemovingExpert ? (
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                  )}
                 </motion.button>
               </div>
             </div>

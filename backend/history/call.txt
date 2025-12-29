@@ -1,25 +1,29 @@
-Call ID: 019b6aa9-22ec-7110-8925-ce07e3a26842
+Call ID: 019b6b14-cfa2-799c-bd70-7d3de30fd0aa
 Phone Number: +918668944955
 Status: queued
-Ended Reason: assistant-ended-call
-Duration: 24.973 seconds
-Cost: $0.0249
-Started At: 2025-12-29T15:10:37.301Z
-Ended At: 2025-12-29T15:11:02.274Z
-Recording URL: https://storage.vapi.ai/019b6aa9-22ec-7110-8925-ce07e3a26842-1767021064868-45d3c34f-f201-4af0-a909-09ea474fc44e-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019b6aa9-22ec-7110-8925-ce07e3a26842-1767021064868-f55df676-344c-443b-a4d0-d0940bbbae62-stereo.wav
+Ended Reason: assistant-forwarded-call
+Duration: 72.889 seconds
+Cost: $0.0938
+Started At: 2025-12-29T17:08:18.055Z
+Ended At: 2025-12-29T17:09:30.944Z
+Recording URL: https://storage.vapi.ai/019b6b14-cfa2-799c-bd70-7d3de30fd0aa-1767028173762-918bf7ac-c9ae-423c-83bf-3a00fb1fba95-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019b6b14-cfa2-799c-bd70-7d3de30fd0aa-1767028173762-5800c4f6-c37f-4456-80b4-e11dc10c5227-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user initiated the call by stating they knew legal details. They subsequently requested to be transferred to a human legal expert to discuss the matter further.
+The user initially inquired about government schemes but then expressed a complaint about their insufficiency for poor people, suggesting an increase in their number. The AI acknowledged this feedback and, at the user's request, transferred the call to a human expert for further assistance.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-AI: Namaste I am Sahayaki how can I help you?
-User: Uh actually I know the legal details of even.
-AI: Thank you for sharing. Is there any other way I can assist you today?
-User: Uh no, I can you pass Transfer the call to human legal expert so I can talk to him.
+AI: Namaste I am Sahayaki how can I help you
+User: Um actually I want to know about the government schemes.
+AI: Sure, I can provide information about various government schemes. Could you please specify which scheme or type of scheme you are interested in?
+User: actually I want to complain about the government schemes like they are insufficient for the poor people and we need to increase the number. for four minutes.
+AI: Hey.
+AI: Thank you for sharing your concern. Your feedback about the insufficiency of government schemes for poor people is important. If you need further assistance or want to discuss this with a government representative, I can help connect you or provide more information. Would you like
+User: Yes, please connect me with a human expert.
+AI: to do that? Okay, this is a crucial and sensitive topic to solve by me. I will transfer the call to our corresponding expert who will further help you.
 
 ================================================================================

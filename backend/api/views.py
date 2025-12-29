@@ -13,7 +13,7 @@ import os
 from rapidfuzz import process, fuzz
 from .structured_output import ToolMetadata
 from .utils import deploy_supabase_edge_logic, fetch_google_sheet_as_df
-from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase
+from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase, HumanExpert
 from .serializers import CallHistorySerializer, CallingSessionSerializer
 from .vapi_service import VAPIService, sanitize_function_name
 from rest_framework.parsers import MultiPartParser, FormParser
@@ -74,8 +74,18 @@ def start_outbound_calling(request):
     for record in all_db_records:
         dynamic_tool_ids.extend(record.vapi_tool_ids)
 
+    # Get all active human expert transfer tool IDs
+    human_expert_tool_ids = list(
+        HumanExpert.objects.filter(is_active=True).values_list('vapi_tool_id', flat=True)
+    )
+    
+    # Combine database tools and human expert transfer tools
+    all_tool_ids = dynamic_tool_ids + human_expert_tool_ids
+    print(f"📞 Starting outbound call with tool IDs: {all_tool_ids}")
+    print(f"👤 Human Expert Tool IDs: {human_expert_tool_ids}")
+
     service = VAPIService()
-    call_response = service.start_outbound_call(phone_number, dynamic_tool_ids, file_ids)
+    call_response = service.start_outbound_call(phone_number, all_tool_ids, file_ids)
 
     if call_response:
         # Create a session in your database to track the call
@@ -104,8 +114,18 @@ def start_inbound_agent(request):
     for record in all_db_records:
         dynamic_tool_ids.extend(record.vapi_tool_ids)
 
+    # Get all active human expert transfer tool IDs
+    human_expert_tool_ids = list(
+        HumanExpert.objects.filter(is_active=True).values_list('vapi_tool_id', flat=True)
+    )
+    
+    # Combine database tools and human expert transfer tools
+    all_tool_ids = dynamic_tool_ids + human_expert_tool_ids
+    print(f"📞 Starting inbound agent with tool IDs: {all_tool_ids}")
+    print(f"👤 Human Expert Tool IDs: {human_expert_tool_ids}")
+
     service = VAPIService()
-    agent_response = service.start_inbound_agent(dynamic_tool_ids, file_ids)
+    agent_response = service.start_inbound_agent(all_tool_ids, file_ids)
 
     if agent_response:
         assistant_id = agent_response.get('assistant_id') or agent_response.get('id')
@@ -1030,7 +1050,7 @@ def create_human_expert(request):
     """
     Creates a VAPI transferCall tool for human expert escalation.
     Takes phone_number and expert_field as inputs.
-    Returns the created tool ID.
+    Saves to database and returns the created tool ID.
     """
     print("\n" + "="*50)
     print("👤 CREATE HUMAN EXPERT REQUEST RECEIVED")
@@ -1070,16 +1090,93 @@ def create_human_expert(request):
         tool_id = tool_response.get('id')
         print(f"✅ Human Expert Tool Created: {tool_id}")
         
+        # Save to database
+        human_expert = HumanExpert.objects.create(
+            phone_number=phone_number,
+            expert_field=expert_field,
+            vapi_tool_id=tool_id,
+            is_active=True
+        )
+        print(f"💾 Human Expert saved to database with ID: {human_expert.id}")
+        
         return Response({
             'success': True,
+            'id': human_expert.id,
             'tool_id': tool_id,
             'phone_number': phone_number,
             'expert_field': expert_field,
-            'message': 'Human expert transfer tool created successfully'
+            'message': 'Human expert transfer tool created and saved successfully'
         }, status=200)
         
     except Exception as e:
         print(f"❌ Error creating human expert tool: {str(e)}")
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_human_experts(request):
+    """
+    Retrieves all human experts from the database.
+    Used by the frontend to display configured human experts.
+    """
+    try:
+        experts = HumanExpert.objects.filter(is_active=True)
+        
+        payload = [{
+            'id': expert.id,
+            'phone_number': expert.phone_number,
+            'expert_field': expert.expert_field,
+            'tool_id': expert.vapi_tool_id,
+            'created_at': expert.created_at.isoformat()
+        } for expert in experts]
+        
+        print(f"📡 Fetched {len(payload)} human experts.")
+        return Response(payload, status=200)
+    
+    except Exception as e:
+        print(f"❌ Error fetching human experts: {str(e)}")
+        return Response({'error': 'Failed to retrieve human experts'}, status=500)
+
+
+@api_view(['DELETE'])
+@permission_classes([AllowAny])
+def delete_human_expert(request, expert_id):
+    """
+    Deletes a human expert from the database.
+    The VAPI tool remains but will no longer be included in calls.
+    """
+    print(f"\n🗑️ DELETE HUMAN EXPERT REQUEST: ID={expert_id}")
+    
+    try:
+        expert = HumanExpert.objects.get(id=expert_id)
+        expert_info = f"{expert.expert_field} - {expert.phone_number}"
+        
+        # Option 1: Soft delete (mark as inactive)
+        # expert.is_active = False
+        # expert.save()
+        
+        # Option 2: Hard delete
+        expert.delete()
+        
+        print(f"✅ Human Expert deleted: {expert_info}")
+        
+        return Response({
+            'success': True,
+            'message': f'Human expert "{expert_info}" deleted successfully'
+        }, status=200)
+        
+    except HumanExpert.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Human expert not found'
+        }, status=404)
+        
+    except Exception as e:
+        print(f"❌ Error deleting human expert: {str(e)}")
         return Response({
             'success': False,
             'error': str(e)

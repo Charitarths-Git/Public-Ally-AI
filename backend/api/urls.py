@@ -25,4 +25,7 @@ urlpatterns = [
     path('execute-sheet_write/', views.execute_sheet_write, name='execute_sheet_write'),
     path('call-history/', views.get_call_history, name='get_call_history'),
     path('create-human-expert/', views.create_human_expert, name='create_human_expert'),
+    path('human-experts/', views.get_human_experts, name='get_human_experts'),
+    path('human-experts/<int:expert_id>/', views.delete_human_expert, name='delete_human_expert'),
 ]
+

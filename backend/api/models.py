@@ -80,3 +80,21 @@ class ConnectedDatabase(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.source_type})"
+
+
+class HumanExpert(models.Model):
+    """Model to store human expert configurations for call transfers"""
+    
+    phone_number = models.CharField(max_length=20)
+    expert_field = models.CharField(max_length=255)
+    vapi_tool_id = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = 'Human Expert'
+        verbose_name_plural = 'Human Experts'
+    
+    def __str__(self):
+        return f"{self.expert_field} - {self.phone_number}"

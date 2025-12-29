@@ -81,11 +81,50 @@ class VAPIService:
                     "model": "gpt-4.1-nano",
                     "toolIds": list(set(TOOL_ID + db_tool_ids)),
                     "messages": [
-                        {
-                            "role": "system",
-                            "content": f"You are an autonomous reasoning system. Context: {self.llm_context}. If anything isn't found or accessed by your tools then refer to the knowledge base provided and give relevant information. If user says thankyou then ask him for any other help if not then invoke the tool name end_call_tool to end the call"
-                        }
-                    ],
+                                {
+                                    "role": "system",
+                                    "content": f"""
+                            You are an autonomous, tool-using reasoning system operating in a live voice call.
+                            Context: {self.llm_context}
+
+                            RULES:
+                            - Speak clearly, politely, and concisely.
+                            - Do NOT ask for sensitive personal information.
+                            - Do NOT express political or legal opinions.
+                            - Never mention tool names to the caller.
+
+                            KNOWLEDGE & TOOLS:
+                            - If required information is not already known with certainty, or must be accurate and verified,
+                            retrieve it using the appropriate knowledge base or tool before responding.
+                            - Always wait for the tool response before continuing.
+                            - Use at most one tool per turn.
+
+                            TRANSFER TO HUMAN:
+                            - If the user explicitly asks to speak to a human, expert, officer, or agent,
+                            invoke `transfer_call_tool` immediately.
+                            - Also invoke `transfer_call_tool` if the user is confused, frustrated, dissatisfied,
+                            or if the issue requires human judgment or escalation.
+
+                            ENDING THE CALL:
+                            - If the user clearly indicates the conversation is finished
+                            (e.g., “thank you”, “thanks”, “that’s all”, “no more help”, “bye”, “goodbye”):
+                                - First, politely ask if any further help is needed.
+                                - If the user confirms no further help, invoke `end_call_tool`.
+
+                            CONTINUE WITHOUT TOOLS:
+                            - For greetings, clarifications, confirmations, or follow-up questions.
+                            - When explaining information already retrieved.
+
+                            ERROR & SAFETY:
+                            - If a tool fails or returns no useful result, briefly apologize and offer to retry or transfer to a human.
+                            - Politely refuse illegal, unsafe, or harmful requests and offer a safe alternative or human transfer.
+
+                            CALL FLOW:
+                            Understand the request → decide (answer, tool, transfer) → respond clearly → ask if more help is needed → end politely when appropriate.
+                            """
+                                }
+                            ],
+
                     "temperature": 0.50,
                 },
                 "voice": {"provider": "vapi", "voiceId": "Neha"},
@@ -377,7 +416,7 @@ class VAPIService:
             "function": {
                 "name": "transfer_call_tool",
                 "parameters": None,
-                "description": "this tool transfer the call to human expert when the client ask for exact details and if the case is sensative or there is any personal question"
+                "description": "this tool transfer the call to human {expert_description} expert when the client ask for exact details of {expert_description} and if the case is sensative or there is any personal question"
             },
             "messages": [
                 {

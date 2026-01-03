@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home, List, Database, BookOpen, FileText, HelpCircle, LogOut, Menu, X } from 'lucide-react';
 import { UserSession } from '@/types';
 import CallNotification from '@/components/ui/CallNotification';
+import API_ENDPOINTS from '@/lib/api-config';
 
 const navItems = [
   { id: 'home', label: 'Home', icon: Home, path: '/dashboard' },
@@ -48,7 +49,7 @@ export default function DashboardLayout({
   useEffect(() => {
     const fetchCallHistory = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/call-history/');
+        const response = await fetch(API_ENDPOINTS.CALL_HISTORY);
         if (response.ok) {
           const data = await response.json();
           if (data.length > 0) {

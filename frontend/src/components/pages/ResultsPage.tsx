@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Phone, Download, Clock, User, CheckCircle, Database, Search, FileText, UserPlus, DollarSign, MessageSquare, ChevronDown } from 'lucide-react';
 import CallNotification from '../ui/CallNotification';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface ResultsPageProps {
   accentColor: string;
@@ -52,7 +53,7 @@ export default function ResultsPage({ accentColor }: ResultsPageProps) {
   // Fetch call history from API
   const fetchCallHistory = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/call-history/');
+      const response = await fetch(API_ENDPOINTS.CALL_HISTORY);
       if (response.ok) {
         const data = await response.json();
         console.log('📞 Fetched call history:', data.length, 'calls');

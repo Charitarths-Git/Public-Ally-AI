@@ -26,6 +26,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 
 load_dotenv()
 
+DEPLOYED_URL = os.getenv("DEPLOYED_URL")
 # Lazy-load LLM to avoid initialization errors at startup when credentials aren't available
 _llm = None
 _structured_llm = None
@@ -936,7 +937,7 @@ def connect_google_sheets(request):
                     }
                 },
                 "server": {
-                    "url": "https://phonematic-streamingly-jayda.ngrok-free.dev/api/execute-sheet_write/"
+                    "url": f"{DEPLOYED_URL}/api/execute_sheet_write",
                 }
             }
             write_tool = vapi_service.create_generic_tool(write_payload)
@@ -1048,11 +1049,17 @@ def execute_sheet_write(request):
         print(f"📦 Prepared row data: {new_row_list}")
 
         # 3. GOOGLE SHEETS WRITE (External)
-        base_dir = settings.BASE_DIR
-        json_path = os.path.join(base_dir, 'service_account.json')
-        
+        json_path = settings.SERVICE_ACCOUNT_FILE 
+
         if not os.path.exists(json_path):
-            raise FileNotFoundError(f"Service account JSON not found at: {json_path}")
+            # This might happen if the Env Var was missing during startup
+            print("❌ Service account file missing! Checking for Env Var...")
+            sa_content = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+            if sa_content:
+                with open(json_path, 'w') as f:
+                    f.write(sa_content)
+            else:
+                raise FileNotFoundError(f"Service account credentials not found in Env or File.")
         
         print(f"🔑 Using service account: {json_path}")
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]

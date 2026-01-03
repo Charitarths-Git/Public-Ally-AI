@@ -13,9 +13,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import json
 
 # Load environment variables
-
+DEPLOYED_URL = os.getenv('DEPLOYED_URL')
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,6 +25,14 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 
 
+SERVICE_ACCOUNT_JSON = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
+SERVICE_ACCOUNT_FILE = BASE_DIR / 'service_account.json'
+
+if SERVICE_ACCOUNT_JSON:
+    SERVICE_ACCOUNT_FILE.write_text(SERVICE_ACCOUNT_JSON)
+
+
+GOOGLE_SHEETS_CREDENTIALS = SERVICE_ACCOUNT_FILE
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
@@ -31,10 +40,14 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5^f*kn-l-@_bnc)y$p=bzkaoss1@!c%v22w(szjhuafyokk3+1')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
-
+VAPI_API_KEY = os.getenv('VAPI_API_KEY')
+VAPI_PHONE_NUMBER_ID = os.getenv('PHONE_NUMBER_ID')
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+SUPABASE_URL = os.getenv('SUPABASE_URL')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
 # Application definition
 
@@ -53,6 +66,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -67,8 +81,12 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:5173",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://phonematic-streamingly-jayda.ngrok-free.dev"
+    "https://phonematic-streamingly-jayda.ngrok-free.dev",
+    "https://modest-reflection-production-893c.up.railway.app"
 ]
+
+if DEPLOYED_URL:
+    CORS_ALLOWED_ORIGINS.append(DEPLOYED_URL)
 
 CORS_ALLOW_CREDENTIALS = True
 
@@ -159,11 +177,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
-
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # VAPI AI Settings
 VAPI_API_KEY = os.getenv('VAPI_API_KEY')

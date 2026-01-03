@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FileText, Plus, X, ZoomIn, ZoomOut, Search } from 'lucide-react';
 import UploadDocumentModal from '../modals/UploadDocumentModal';
 import axios from 'axios';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface KnowledgeBasePageProps {
   accentColor: string;
@@ -33,7 +34,7 @@ export default function KnowledgeBasePage({ accentColor }: KnowledgeBasePageProp
   const fetchDocuments = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('http://127.0.0.1:8000/api/documents/');
+      const response = await axios.get(API_ENDPOINTS.DOCUMENTS);
       
       const formattedDocs = response.data.map((doc: any) => ({
         id: doc.id, 

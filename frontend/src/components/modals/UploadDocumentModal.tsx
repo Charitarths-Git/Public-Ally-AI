@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Upload, FileText, Trash2, Check } from 'lucide-react';
 import axios from 'axios';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface UploadDocumentModalProps {
   isOpen: boolean;
@@ -29,7 +30,7 @@ export default function UploadDocumentModal({ isOpen, onClose, accentColor }: Up
 
   const fetchExistingDocs = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/api/documents/');
+    const response = await axios.get(API_ENDPOINTS.DOCUMENTS);
     
     // Since the backend already formatted 'id', 'name', and 'type',
     // we just set the state directly.
@@ -52,7 +53,7 @@ export default function UploadDocumentModal({ isOpen, onClose, accentColor }: Up
       formData.append('file', file);
 
       try {
-        const response = await axios.post('http://127.0.0.1:8000/api/upload-document/', formData);
+        const response = await axios.post(API_ENDPOINTS.UPLOAD_DOCUMENT, formData);
 
         if (response.data.success) {
           const newFile = {
@@ -76,7 +77,7 @@ export default function UploadDocumentModal({ isOpen, onClose, accentColor }: Up
 
     try {
       // Call backend to delete from DB and update Vapi Tool
-      const response = await axios.delete(`http://127.0.0.1:8000/api/documents/${id}/`);
+      const response = await axios.delete(API_ENDPOINTS.DELETE_DOCUMENT(id));
 
       if (response.data.success) {
         setUploadedFiles(prev => prev.filter(file => file.id !== id));

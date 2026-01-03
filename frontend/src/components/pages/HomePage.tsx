@@ -7,6 +7,7 @@ import UploadDocumentModal from '../modals/UploadDocumentModal';
 import ConnectDatabaseModal from '../modals/ConnectDatabaseModal';
 import AddHumanExpertModal from '../modals/AddHumanExpertModal';
 import axios from 'axios';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface HomePageProps {
   userSession: UserSession;
@@ -73,7 +74,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   useEffect(() => {
     const fetchAgentConfiguration = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/agent-configuration/');
+        const response = await axios.get(API_ENDPOINTS.AGENT_CONFIGURATION);
         if (response.data && response.data.success) {
           setAiName(response.data.name);
           setTempName(response.data.name);
@@ -88,7 +89,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
     const fetchHumanExperts = async () => {
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/human-experts/');
+        const response = await axios.get(API_ENDPOINTS.HUMAN_EXPERTS);
         if (response.data && response.data.length > 0) {
           // Use the first active human expert
           setHumanExpert(response.data[0]);
@@ -102,7 +103,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     const fetchAvailableTools = async () => {
       setIsLoadingTools(true);
       try {
-        const response = await axios.get('http://127.0.0.1:8000/api/available-tools/');
+        const response = await axios.get(API_ENDPOINTS.AVAILABLE_TOOLS);
         if (response.data && response.data.success) {
           setAvailableTools(response.data.tools);
           console.log('Loaded available tools from backend:', response.data.tools);
@@ -135,7 +136,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     ));
 
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/start-outbound-calling/', {
+      const response = await axios.post(API_ENDPOINTS.START_OUTBOUND_CALLING, {
         phone_number: nextPerson.phone.replace(/\s+/g, ''),
         file_ids: activeFileIds
       });
@@ -160,7 +161,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsStartingInbound(true);
     
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/start-inbound-agent/', {
+      const response = await axios.post(API_ENDPOINTS.START_INBOUND_AGENT, {
         file_ids: activeFileIds
       });
 
@@ -179,7 +180,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const stopInboundAgent = async () => {
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/stop-calling/', {});
+      const response = await axios.post(API_ENDPOINTS.STOP_CALLING, {});
       
       if (response.data.success) {
         setInboundAgentActive(false);
@@ -220,7 +221,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     
     setIsSavingConfig(true);
     try {
-      const response = await axios.put('http://127.0.0.1:8000/api/agent-configuration/update/', {
+      const response = await axios.put(API_ENDPOINTS.AGENT_CONFIGURATION_UPDATE, {
         name: tempName.trim()
       });
       
@@ -242,7 +243,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     
     setIsSavingConfig(true);
     try {
-      const response = await axios.put('http://127.0.0.1:8000/api/agent-configuration/update/', {
+      const response = await axios.put(API_ENDPOINTS.AGENT_CONFIGURATION_UPDATE, {
         description: tempDescription.trim()
       });
       
@@ -277,7 +278,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsCreatingExpert(true);
     
     try {
-      const response = await axios.post('http://127.0.0.1:8000/api/create-human-expert/', {
+      const response = await axios.post(API_ENDPOINTS.CREATE_HUMAN_EXPERT, {
         phone_number: data.phoneNumber,
         expert_field: data.expertField
       });
@@ -306,7 +307,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsRemovingExpert(true);
     
     try {
-      const response = await axios.delete(`http://127.0.0.1:8000/api/human-experts/${humanExpert.id}/`);
+      const response = await axios.delete(API_ENDPOINTS.DELETE_HUMAN_EXPERT(humanExpert.id));
       
       if (response.data.success) {
         setHumanExpert(null);
@@ -339,7 +340,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsTogglingTool(toolId);
     
     try {
-      const response = await axios.put('http://127.0.0.1:8000/api/tool-status/update/', {
+      const response = await axios.put(API_ENDPOINTS.TOOL_STATUS_UPDATE, {
         tool_id: toolId,
         enabled: newEnabled
       });

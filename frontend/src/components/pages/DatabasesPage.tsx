@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Database, Plus, Loader2, Trash2, Download } from 'lucide-react';
 import axios from 'axios';
 import ConnectDatabaseModal from '../modals/ConnectDatabaseModal';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface DatabasesPageProps {
   accentColor: string;
@@ -23,7 +24,7 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
   const fetchDatabases = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://127.0.0.1:8000/api/get-databases/');
+      const response = await axios.get(API_ENDPOINTS.GET_DATABASES);
       const formattedDatabases = response.data.map((db: any) => ({
         id: db.id,
         name: db.name,
@@ -59,7 +60,7 @@ export default function DatabasesPage({ accentColor }: DatabasesPageProps) {
 
     try {
       // FIX: Changed URL to '/api/delete-database/' to match your cleaner view
-      await axios.delete(`http://127.0.0.1:8000/api/delete-database/`, {
+      await axios.delete(API_ENDPOINTS.DELETE_DATABASE, {
         params: { name: name }
       });
 

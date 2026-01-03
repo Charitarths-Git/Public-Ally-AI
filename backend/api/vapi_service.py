@@ -8,6 +8,8 @@ import time
 
 load_dotenv()
 
+DEPLOYED_URL = os.getenv('DEPLOYED_URL')
+print(f"🚀 DEPLOYED_URL: {DEPLOYED_URL}")
 gemini_client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
 
 TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c","ffce1d40-0d91-4eca-aec3-8520ad1bf46d"]
@@ -205,11 +207,11 @@ class VAPIService:
                 "transcriber": {
                     "model": "gemini-2.0-flash",
                     "provider": "google",
-                    "language": "multi"
+                    "language": "Multilingual"
                 },
                 # Server configuration for webhook
                 "server": {
-                    "url": os.getenv('WEBHOOK_URL', 'https://phonematic-streamingly-jayda.ngrok-free.dev/api/vapi-webhook/')
+                    "url": f"{DEPLOYED_URL}/api/vapi-webhook/"
                 },
                 # Only receive end-of-call-report (not live transcript events)
                 "serverMessages": ["end-of-call-report"]
@@ -230,8 +232,8 @@ class VAPIService:
             print(f"✅ Outbound call initiated successfully: {call_response.get('id')}")
             return call_response
 
-        except Exception as e:
-            print(f"❌ Outbound Call Error: {e}")
+        except requests.exceptions.HTTPError as e:
+            print(f"❌ Vapi API Error: {e.response.text}") # This is the golden ticket
             return None
 
     def start_inbound_agent(self, db_tool_ids=None, file_ids=None, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
@@ -291,7 +293,7 @@ class VAPIService:
                 "endCallMessage": "Thank you for calling. Have a good day.",
                 # Server configuration for webhook
                 "server": {
-                    "url": os.getenv('WEBHOOK_URL', 'https://phonematic-streamingly-jayda.ngrok-free.dev/api/vapi-webhook/')
+                    "url": f"{DEPLOYED_URL}/api/vapi-webhook/"
                 },
                 "serverMessages": ["end-of-call-report"]
             }
@@ -435,7 +437,7 @@ class VAPIService:
                     }
                 },
                 "server": {
-                    "url": "https://phonematic-streamingly-jayda.ngrok-free.dev/api/execute-db-query/" 
+                    "url": f"{DEPLOYED_URL}/api/execute-db-query/" 
                 }
             }
 

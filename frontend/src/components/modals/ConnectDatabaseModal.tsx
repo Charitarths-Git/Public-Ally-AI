@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Database, Upload, Loader2, CheckCircle2, Link, Globe, Table, Key, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 import axios from 'axios';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface ConnectDatabaseModalProps {
   isOpen: boolean;
@@ -57,10 +58,10 @@ export default function ConnectDatabaseModal({ isOpen, onClose, accentColor }: C
     formData.append('name', dbDisplayName || (selectedFile ? selectedFile.name : `Dataset_${Date.now()}`));
 
     // 2. Routing to correct Endpoint
-    let endpoint = 'http://127.0.0.1:8000/api/connect-database/'; // Default for Files
+    let endpoint: string = API_ENDPOINTS.CONNECT_DATABASE; // Default for Files
 
     if (sourceType === 'supabase') {
-      endpoint = 'http://127.0.0.1:8000/api/connect-supabase/';
+      endpoint = API_ENDPOINTS.CONNECT_SUPABASE;
       formData.append('host', host);
       formData.append('database', database);
       formData.append('username', username);
@@ -70,7 +71,7 @@ export default function ConnectDatabaseModal({ isOpen, onClose, accentColor }: C
       formData.append('access_token', supabaseAccessToken);
     } 
     else if (sourceType === 'googlesheets') {
-      endpoint = 'http://127.0.0.1:8000/api/connect-google-sheets/';
+      endpoint = API_ENDPOINTS.CONNECT_GOOGLE_SHEETS;
       formData.append('sheet_url', sheetUrl);
     } 
     else if (selectedFile) {

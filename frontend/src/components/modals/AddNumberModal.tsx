@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
+import axios from 'axios';
+import API_ENDPOINTS from '../../lib/api-config';
 
 interface AddNumberModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (entry: { name: string; phone: string; notes?: string }) => void;
+  // This onAdd now receives the full object returned from the DB (with the ID)
+  onAdd: (entry: any) => void;
   accentColor: string;
 }
 
@@ -13,15 +16,35 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [notes, setNotes] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim() && phone.trim()) {
-      onAdd({ name: name.trim(), phone: phone.trim(), notes: notes.trim() || undefined });
-      setName('');
-      setPhone('');
-      setNotes('');
-      onClose();
+    
+    if (!name.trim() || !phone.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      // 1. Send data to the Django Backend
+      const response = await axios.post(API_ENDPOINTS.CALLING_QUEUE, {
+        name: name.trim(),
+        phone: phone.trim(),
+        description: notes.trim() // 'notes' in UI maps to 'description' in DB
+      });
+
+      if (response.data.success || response.status === 200) {
+        // 2. Pass the saved database record back to the Parent (HomePage)
+        // response.data.data usually contains the object created in Supabase
+        onAdd(response.data.data || response.data);
+        
+        // 3. Reset form and close
+        handleClose();
+      }
+    } catch (error: any) {
+      console.error("Submission failed:", error.response?.data || error.message);
+      alert("Error: Could not save number to database.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -29,6 +52,7 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
     setName('');
     setPhone('');
     setNotes('');
+    setIsSubmitting(false);
     onClose();
   };
 
@@ -72,6 +96,7 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
                     placeholder="Enter name"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -86,6 +111,7 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
                     placeholder="+91 98765 43210"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -99,6 +125,7 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
                     placeholder="Any special instructions for the AI regarding this call"
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors resize-none"
                     rows={3}
+                    disabled={isSubmitting}
                   />
                 </div>
 
@@ -107,17 +134,26 @@ export default function AddNumberModal({ isOpen, onClose, onAdd, accentColor }: 
                     type="button"
                     onClick={handleClose}
                     className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </button>
                   <motion.button
                     type="submit"
-                    className="flex-1 px-4 py-3 text-white rounded-lg shadow-lg"
-                    style={{ backgroundColor: accentColor }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="flex-1 px-4 py-3 text-white rounded-lg shadow-lg flex items-center justify-center gap-2"
+                    style={{ backgroundColor: isSubmitting ? '#9ca3af' : accentColor }}
+                    disabled={isSubmitting}
+                    whileHover={!isSubmitting ? { scale: 1.02 } : {}}
+                    whileTap={!isSubmitting ? { scale: 0.98 } : {}}
                   >
-                    Add to Queue
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      "Add to Queue"
+                    )}
                   </motion.button>
                 </div>
               </form>

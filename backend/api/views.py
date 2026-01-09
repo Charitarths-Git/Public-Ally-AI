@@ -23,6 +23,9 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 import requests
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from supabase import create_client
+
+supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 load_dotenv()
 
@@ -663,6 +666,8 @@ def vapi_webhook(request):
             print(f"\n🎙️ Recording URL: {recording_url}")
             print(f"🎙️ Stereo Recording URL: {stereo_recording_url}")
             print("="*80 + "\n")
+
+
             
             # Save transcript to backend/history/call.txt file
             try:
@@ -733,6 +738,19 @@ def vapi_webhook(request):
                 
             except Exception as db_error:
                 print(f"⚠️ Could not save to database: {db_error}")
+
+
+            try:# Assuming your client is here
+                # Update status to 'completed' where phone matches and status was 'calling'
+                supabase.table('calling_queue')\
+                    .update({"status": "completed"})\
+                    .eq("phone", phone_number)\
+                    .eq("status", "calling")\
+                    .execute()
+                
+                print(f"✅ Supabase Queue Updated: {phone_number} marked as Completed")
+            except Exception as supabase_error:
+                print(f"⚠️ Failed to update Supabase queue: {supabase_error}")
             
             # Update session if exists
             try:
@@ -937,7 +955,7 @@ def connect_google_sheets(request):
                     }
                 },
                 "server": {
-                    "url": f"{DEPLOYED_URL}/api/execute_sheet_write",
+                    "url": f"{DEPLOYED_URL}/api/execute-sheet-write",
                 }
             }
             write_tool = vapi_service.create_generic_tool(write_payload)
@@ -1436,3 +1454,33 @@ def update_tool_status(request):
             'success': False,
             'error': str(e)
         }, status=500)
+    
+@api_view(['GET', 'POST'])
+def manage_calling_queue(request):
+    if request.method == 'GET':
+        # Fetch from Supabase
+        response = supabase.table('calling_queue').select("*").order('created_at', desc=True).execute()
+        return Response(response.data)
+
+    if request.method == 'POST':
+        # Add to Supabase
+        name = request.data.get('name')
+        phone = request.data.get('phone')
+        description = request.data.get('description', '')
+        
+        data = {
+            "name": name,
+            "phone": phone,
+            "description": description,
+            "status": "pending"
+        }
+        
+        response = supabase.table('calling_queue').insert(data).execute()
+        return Response({'success': True, 'data': response.data[0]})
+
+@api_view(['PATCH'])
+def update_queue_status(request, pk):
+    # Update status (pending -> calling -> completed)
+    new_status = request.data.get('status')
+    supabase.table('calling_queue').update({"status": new_status}).eq("id", pk).execute()
+    return Response({'success': True})

@@ -1,36 +1,24 @@
-Call ID: 019b6b5f-1081-7fff-8409-da73ee9fe5e5
-Phone Number: +918668944955
+Call ID: 019ba4bc-3dc1-7ff6-b5fe-cc7e1ad82027
+Phone Number: +917206015146
 Status: queued
-Ended Reason: assistant-forwarded-call
-Duration: 129.085 seconds
-Cost: $0.1571
-Started At: 2025-12-29T18:29:33.954Z
-Ended At: 2025-12-29T18:31:43.039Z
-Recording URL: https://storage.vapi.ai/019b6b5f-1081-7fff-8409-da73ee9fe5e5-1767033105699-4ad80ae9-3811-4bff-b4b0-832c05ee2eb6-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019b6b5f-1081-7fff-8409-da73ee9fe5e5-1767033105700-1f803904-e6ec-4c1d-ab6d-0eae570191b0-stereo.wav
+Ended Reason: customer-ended-call
+Duration: 29.167 seconds
+Cost: $0.0408
+Started At: 2026-01-09T21:49:28.881Z
+Ended At: 2026-01-09T21:49:58.048Z
+Recording URL: https://storage.vapi.ai/019ba4bc-3dc1-7ff6-b5fe-cc7e1ad82027-1767995400610-d5e10154-54a9-4bbe-8a07-ad23297b59c8-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019ba4bc-3dc1-7ff6-b5fe-cc7e1ad82027-1767995400610-2a60fe24-ae83-4b3b-8d44-d51fcf7cb36c-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user called to register a complaint against the Ministry of Education, citing unresponsiveness to emails, issues with printing documents, and poor quality of education courses. The AI recorded these details and, recognizing the sensitive nature of the request, forwarded the call to a human expert for further assistance.
+The user initiated the call by asking the AI's identity. The AI, Sahayaki from the Department of Pension in Delhi, introduced itself and offered assistance with pension rules and regulations. The user then acknowledged the AI and ended the call.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-AI: Namaste, I am Lokmitra AI. How can I help you?
-User: Mm. Do you know about the
-AI: Could you please let me know how I can assist you today?
-User: Hello.
-AI: Hello, how can I assist you today?
-User: Uh actually I want to register a complaint about Ministry of Education.
-AI: Your complaint about the Ministry of Education has been recorded. Is there any specific issue or details you would like to share?
-User: Yeah, the Ministry of Education is not responding to my mails and also the responsibility of their printing the papers or a document
-AI: 
-AI: Thank you for sharing the details. I will now log this complaint with the Ministry of Education. Please hold on for a moment.
-AI: Your complaint regarding the Ministry of Education's response and printing responsibilities has been recorded. Is there anything else I can assist you with?
-User: events of the education courses is not good.
-AI: I understand your concern about the quality of education courses. Would you like to add this issue to your existing complaint or would you like to report it separately?
-User: Uh, can you help me out using a technical expert or human call?
-AI: Okay, this is a crucial and sensitive topic to solve by me. I will transfer the call to our corresponding expert who will further help you related to this.
+User: Hello Saiki, who are you?
+AI: Hello, I am Sahayaki, an AI agent representing the Department of Pension in Delhi. I am here to help you with any questions or information related to pension rules and regulations. How can I assist you today?
+User: ओके भाई साईं की भाई
 
 ================================================================================

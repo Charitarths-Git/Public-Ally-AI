@@ -22,7 +22,7 @@ urlpatterns = [
     path('vapi-webhook/', views.vapi_webhook, name='vapi_webhook'),
     path('connect-supabase/', views.connect_supabase, name='connect_supabase'),
     path('connect-google-sheets/', views.connect_google_sheets, name='connect_google_sheets'),
-    path('execute-sheet_write/', views.execute_sheet_write, name='execute_sheet_write'),
+    path('execute-sheet-write/', views.execute_sheet_write, name='execute_sheet_write'),
     path('call-history/', views.get_call_history, name='get_call_history'),
     path('create-human-expert/', views.create_human_expert, name='create_human_expert'),
     path('human-experts/', views.get_human_experts, name='get_human_experts'),
@@ -31,4 +31,6 @@ urlpatterns = [
     path('agent-configuration/update/', views.update_agent_configuration, name='update_agent_configuration'),
     path('available-tools/', views.get_available_tools, name='get_available_tools'),
     path('tool-status/update/', views.update_tool_status, name='update_tool_status'),
+    path('calling-queue/', views.manage_calling_queue, name='manage-queue'),
+    path('calling-queue/<str:pk>/update/', views.update_queue_status, name='update-queue-status'),
 ]

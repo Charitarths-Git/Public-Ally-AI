@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
   // Agent Configuration
   AGENT_CONFIGURATION: `${API_BASE_URL}/api/agent-configuration/`,
   AGENT_CONFIGURATION_UPDATE: `${API_BASE_URL}/api/agent-configuration/update/`,
+
+  CALLING_QUEUE: `${API_BASE_URL}/api/calling-queue/`,
+  UPDATE_QUEUE_STATUS: (id: string | number) => `${API_BASE_URL}/api/calling-queue/${id}/update/`,
   
   // Human Experts
   HUMAN_EXPERTS: `${API_BASE_URL}/api/human-experts/`,

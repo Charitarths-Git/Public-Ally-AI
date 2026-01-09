@@ -87,6 +87,15 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       }
     };
 
+    const fetchCallingQueue = async () => {
+        try {
+            const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
+            setCallingQueue(response.data); // Set state from Supabase
+        } catch (error) {
+            console.error('Error fetching queue:', error);
+        }
+    };
+
     const fetchHumanExperts = async () => {
       try {
         const response = await axios.get(API_ENDPOINTS.HUMAN_EXPERTS);
@@ -118,9 +127,46 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     fetchAgentConfiguration();
     fetchHumanExperts();
     fetchAvailableTools();
+    fetchCallingQueue();
   }, []);
 
+  // --- ADD THIS STARTING AT LINE 115 ---
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    // We only poll if a session is active (the button is in 'End Outbound' mode)
+    if (sessionInProgress) {
+      interval = setInterval(async () => {
+        try {
+          const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
+          const updatedData = response.data;
+          
+          setCallingQueue(updatedData);
+
+          // BUTTON RESET LOGIC: 
+          // Check if the database says anyone is still currently being called
+          const anyoneCalling = updatedData.some((entry: any) => entry.status === 'calling');
+
+          // If no one is 'calling' in the DB, and the frontend isn't 
+          // currently in the middle of a trigger (isCalling), reset the UI button
+          if (!anyoneCalling && !isCalling) {
+            setSessionInProgress(false);
+          }
+        } catch (error) {
+          console.error("Polling sync failed:", error);
+        }
+      }, 3000); // Check every 3 seconds
+    }
+
+    // This is the cleanup function you asked about:
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [sessionInProgress, isCalling]);
+  // --- END OF NEW BLOCK ---
+
   const triggerNextCall = async () => {
+    // 1. Find the first person who hasn't been called yet
     const nextPerson = callingQueue.find(entry => entry.status === 'pending');
 
     if (!nextPerson) {
@@ -128,14 +174,23 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       return;
     }
 
+    // Start UI loading states
     setIsCalling(true);
     setSessionInProgress(true);
 
-    setCallingQueue(prev => prev.map(entry => 
-      entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
-    ));
-
     try {
+      // 2. SYNC WITH DATABASE: Update status to 'calling' in Supabase first
+      // This uses the endpoint we fixed with (id: string | number)
+      await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(nextPerson.id), {
+        status: 'calling'
+      });
+
+      // 3. Update local UI state immediately for responsiveness
+      setCallingQueue(prev => prev.map(entry => 
+        entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
+      ));
+
+      // 4. TRIGGER VAPI CALL: Send the request to your Django backend
       const response = await axios.post(API_ENDPOINTS.START_OUTBOUND_CALLING, {
         phone_number: nextPerson.phone.replace(/\s+/g, ''),
         file_ids: activeFileIds
@@ -144,14 +199,27 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       if (response.data.success) {
         console.log('Outbound call initiated successfully:', response.data.session_id);
       }
+
     } catch (error: any) {
-      console.error("VAPI/Django Error:", error.response?.data || error.message);
-      alert("Failed to start outbound call: " + (error.response?.data?.error || "Server error"));
+      console.error("VAPI/Database Error:", error.response?.data || error.message);
       
+      // 5. ERROR RECOVERY: If it fails, set the status back to 'pending' in the DB
+      try {
+        await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(nextPerson.id), {
+          status: 'pending'
+        });
+      } catch (dbError) {
+        console.error("Critical: Could not revert database status.");
+      }
+
+      // Revert local UI state
       setCallingQueue(prev => prev.map(entry => 
         entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
       ));
+      
       setSessionInProgress(false);
+      alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
+      
     } finally {
       setIsCalling(false);
     }
@@ -201,11 +269,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsCalling(false);
   };
 
-  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([
-    { id: '1', name: 'Kartavya', phone: '+918668944955', notes: 'Regarding govt_schemes info', status: 'pending' },
-    { id: '2', name: 'Priya Sharma', phone: '+919876543211', notes: 'Complaint about road maintenance', status: 'pending' },
-    { id: '3', name: 'Amit Patel', phone: '+919876543212', notes: 'Info about Govt schemes', status: 'pending' },
-  ]);
+  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
 
   const [capabilities, setCapabilities] = useState<AICapability[]>([
     { id: 'tickets', label: 'Create/Update Tickets', description: 'Allow AI to create or update tickets in the database', enabled: true },
@@ -321,13 +385,10 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     }
   };
 
-  const handleAddNumber = (entry: Omit<QueueEntry, 'id' | 'status'>) => {
-    const newEntry: QueueEntry = {
-      ...entry,
-      id: Date.now().toString(),
-      status: 'pending'
-    };
-    setCallingQueue([...callingQueue, newEntry]);
+  const handleAddNumber = (newEntryFromDB: QueueEntry) => {
+  // We just add the entry directly because the Modal 
+  // already handled the database part
+  setCallingQueue(prev => [newEntryFromDB, ...prev]);
   };
 
   const toggleTool = async (toolId: string) => {

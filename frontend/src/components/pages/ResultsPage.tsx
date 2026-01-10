@@ -89,20 +89,28 @@ export default function ResultsPage({ accentColor }: ResultsPageProps) {
   };
 
   useEffect(() => {
-    console.log('🚀 ResultsPage mounted, starting to fetch call history...');
-    fetchCallHistory();
-    
-    // Poll for new calls every 5 seconds
-    const interval = setInterval(() => {
-      console.log('🔄 Polling for new calls...');
+  console.log('🚀 ResultsPage mounted, starting initial fetch...');
+  
+  // Initial fetch on mount
+  fetchCallHistory();
+
+  // Poll for new calls every 5-10 seconds
+  const interval = setInterval(() => {
+    // Only execute if the user is actually looking at this tab
+    if (document.visibilityState === 'visible') {
+      console.log('🔄 Tab active: Polling for new calls...');
       fetchCallHistory();
-    }, 5000);
-    
-    return () => {
-      console.log('🛑 Clearing interval');
-      clearInterval(interval);
-    };
-  }, [lastCallId]);
+    } else {
+      // Logic is paused while tab is in background
+      console.log('💤 Tab backgrounded: Polling paused to save server resources.');
+    }
+  }, 5000); // You can increase this to 10000 (10s) for better stability
+  
+  return () => {
+    console.log('🛑 ResultsPage unmounting, clearing interval');
+    clearInterval(interval);
+  };
+}, [lastCallId]);
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));

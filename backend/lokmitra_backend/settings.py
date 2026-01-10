@@ -127,6 +127,7 @@ if USE_SUPABASE:
             'PASSWORD': os.getenv('SUPABASE_DB_PASSWORD'),
             'HOST': os.getenv('SUPABASE_DB_HOST'),
             'PORT': os.getenv('SUPABASE_DB_PORT', '5432'),
+            'CONN_MAX_AGE': 600,
             'OPTIONS': {
                 'sslmode': 'require',
             }

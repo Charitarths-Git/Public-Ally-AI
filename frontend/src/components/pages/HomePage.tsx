@@ -88,13 +88,15 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     };
 
     const fetchCallingQueue = async () => {
-        try {
-            const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
-            setCallingQueue(response.data); // Set state from Supabase
-        } catch (error) {
-            console.error('Error fetching queue:', error);
-        }
-    };
+    try {
+        const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
+        // Take only the first 5 entries for the Homepage preview
+        const limitedQueue = response.data.slice(0, 5); 
+        setCallingQueue(limitedQueue); 
+    } catch (error) {
+        console.error('Error fetching queue:', error);
+    }
+  };
 
     const fetchHumanExperts = async () => {
       try {
@@ -132,37 +134,40 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   // --- ADD THIS STARTING AT LINE 115 ---
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+  const pollInterval = 5000; // Increased to 5s to reduce server load
 
-    // We only poll if a session is active (the button is in 'End Outbound' mode)
-    if (sessionInProgress) {
-      interval = setInterval(async () => {
-        try {
-          const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
-          const updatedData = response.data;
-          
-          setCallingQueue(updatedData);
+  const interval = setInterval(async () => {
+    // ONLY call the API if:
+    // 1. The browser tab is active/visible
+    // 2. The document is not hidden
+    if (document.visibilityState === 'visible' && !document.hidden) {
+      try {
+        const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
+        // Limit to latest 5 for the Homepage as requested earlier
+        const updatedData = response.data.slice(0, 5); 
+        
+        setCallingQueue(updatedData);
 
-          // BUTTON RESET LOGIC: 
-          // Check if the database says anyone is still currently being called
-          const anyoneCalling = updatedData.some((entry: any) => entry.status === 'calling');
+        const anyoneCalling = updatedData.some((entry: any) => entry.status === 'calling');
 
-          // If no one is 'calling' in the DB, and the frontend isn't 
-          // currently in the middle of a trigger (isCalling), reset the UI button
-          if (!anyoneCalling && !isCalling) {
-            setSessionInProgress(false);
-          }
-        } catch (error) {
-          console.error("Polling sync failed:", error);
+        if (!anyoneCalling && isCalling) {
+          setIsCalling(false);
         }
-      }, 3000); // Check every 3 seconds
+        
+        const anyPending = updatedData.some((entry: any) => entry.status === 'pending');
+        if (!anyPending && !anyoneCalling) {
+          setSessionInProgress(false);
+        }
+      } catch (error) {
+        console.error("Polling sync failed:", error);
+      }
+    } else {
+      console.log("Polling paused: Tab is inactive.");
     }
+  }, pollInterval);
 
-    // This is the cleanup function you asked about:
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [sessionInProgress, isCalling]);
+  return () => clearInterval(interval);
+}, [isCalling]); // Removed sessionInProgress dependency to keep polling active
   // --- END OF NEW BLOCK ---
 
   const triggerNextCall = async () => {
@@ -260,14 +265,20 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     }
   };
 
-  const endSession = () => {
-    // Mark all calling entries as completed
-    setCallingQueue(prev => prev.map(entry => 
-      entry.status === 'calling' ? { ...entry, status: 'completed' } : entry
-    ));
-    setSessionInProgress(false);
-    setIsCalling(false);
-  };
+  const endSession = async () => {
+  // Find all currently 'calling' entries
+  const callingEntries = callingQueue.filter(e => e.status === 'calling');
+  
+  // Update them in the DB
+  for (const entry of callingEntries) {
+    await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(entry.id), {
+      status: 'completed'
+    });
+  }
+  
+  setSessionInProgress(false);
+  setIsCalling(false);
+};
 
   const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
 
@@ -386,11 +397,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   };
 
   const handleAddNumber = (newEntryFromDB: QueueEntry) => {
-  // We just add the entry directly because the Modal 
-  // already handled the database part
-  setCallingQueue(prev => [newEntryFromDB, ...prev]);
-  };
-
+  // 1. Add the new entry to the top of the list
+  // 2. Immediately slice to 5 so the UI doesn't expand and then shrink
+  setCallingQueue(prev => {
+    const updatedList = [newEntryFromDB, ...prev];
+    return updatedList.slice(0, 5);
+  });
+};
   const toggleTool = async (toolId: string) => {
     if (sessionInProgress) return;
     

@@ -1,6 +1,10 @@
 import React, { useRef } from 'react';
 import { motion, useInView } from "motion/react";
 import {
+    Brain,
+    Wand2,
+    Fingerprint,
+    Layers,
     Phone,
     Clock,
     Globe,
@@ -8,6 +12,11 @@ import {
     MessageSquare,
     Database,
     Wifi,
+    FileText,
+    ShieldCheck,
+    Bot,
+    List,
+    ScanLine,
     BarChart3,
     Zap,
     Users,
@@ -27,6 +36,75 @@ interface AboutPageProps {
     accentColor: string;
 }
 
+function CoreInnovationCard({ title, description, icon: Icon, delay, accentColor }: any) {
+    return (
+        <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay }}
+            className="relative pl-8 pb-12 border-l-2 border-gray-200 last:pb-0 last:border-0"
+        >
+            <div className="absolute -left-[25px] top-0 w-12 h-12 rounded-full bg-white border-4 border-gray-50 flex items-center justify-center shadow-sm">
+                <Icon className="w-5 h-5" style={{ color: accentColor }} />
+            </div>
+            <h3 className="text-xl font-bold mb-2 text-gray-900">{title}</h3>
+            <p className="text-gray-600 leading-relaxed">{description}</p>
+        </motion.div>
+    )
+}
+
+function TimelineStep({ number, title, content, icon: Icon, isLast, accentColor }: any) {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true, margin: "-100px" });
+
+    return (
+        <div ref={ref} className={`relative flex gap-8 ${!isLast ? 'pb-24' : ''}`}>
+            {!isLast && (
+                <div
+                    className="absolute left-[39px] top-20 bottom-0 w-0.5 bg-gradient-to-b from-gray-200 to-transparent"
+                />
+            )}
+
+            <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={isInView ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="relative z-10 flex-shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg bg-white border border-gray-100"
+            >
+                <div
+                    className="absolute inset-2 rounded-xl opacity-10"
+                    style={{ backgroundColor: accentColor }}
+                />
+                <Icon className="w-8 h-8" style={{ color: accentColor }} />
+                <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold border-4 border-white">
+                    {number}
+                </div>
+            </motion.div>
+
+            <motion.div
+                initial={{ x: 50, opacity: 0 }}
+                animate={isInView ? { x: 0, opacity: 1 } : { x: 50, opacity: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="flex-1 pt-2"
+            >
+                <h3 className="text-2xl font-bold mb-4 text-gray-900">{title}</h3>
+                <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <p className="text-gray-600 mb-6 text-lg leading-relaxed">{content.description}</p>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {content.features.map((feature: string, idx: number) => (
+                            <div key={idx} className="flex items-start gap-3">
+                                <div className="mt-1.5 w-1.5 h-1.5 rounded-full bg-gray-300" />
+                                <span className="text-gray-600 text-sm font-medium">{feature}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+}
 function AnimatedSection({ children, className = "", id }: { children: React.ReactNode; className?: string; id?: string }) {
     const ref = useRef(null);
     const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -112,7 +190,6 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
         { icon: ArrowUpRight, title: "Smart Escalation", description: "Intelligently identifies urgent cases and seamlessly connects them to human officers for immediate attention." },
         { icon: MessageSquare, title: "Complaint Tracking via SMS", description: "Citizens receive SMS updates on their complaint status, keeping them informed throughout the resolution process." },
         { icon: Database, title: "Real-Time Data Integration", description: "Connects with government databases to provide accurate, up-to-date information on services and schemes." },
-        { icon: Wifi, title: "Works Without Internet", description: "Operates on basic 2G phone calls, ensuring accessibility for citizens in remote areas without smartphones." },
         { icon: Users, title: "Massive Call Scalability", description: "Handles thousands of simultaneous calls, ensuring no citizen is left waiting during peak demand periods." },
         { icon: BarChart3, title: "Analytics Dashboard", description: "Provides real-time insights into citizen queries, enabling data-driven improvements in service delivery." },
         { icon: Sparkles, title: "Low-Latency Experience", description: "Delivers fast, responsive conversations that feel natural and keep citizens engaged without frustrating delays." },
@@ -132,84 +209,91 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
     return (
         <div className="min-h-screen bg-transparent">
             {/* Hero Section */}
-            <section className="relative pt-8 pb-20 overflow-hidden" id="who-we-are">
-                <div className="absolute inset-0 bg-gradient-to-b from-white/5 via-transparent to-transparent" />
+            <section className="relative pt-20 pb-20 overflow-hidden" id="who-we-are">
+                <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-transparent" />
+                <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]" />
 
-                <div className="relative max-w-7xl mx-auto px-6 pt-10">
+                <div className="relative max-w-7xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.7, delay: 0.2 }}
-                        className="max-w-3xl"
+                        transition={{ duration: 0.8 }}
+                        className="max-w-5xl mx-auto"
                     >
                         <div
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium mb-6"
-                            style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full text-sm font-semibold mb-8 border backdrop-blur-sm mx-auto"
+                            style={{
+                                backgroundColor: `${accentColor}08`,
+                                color: accentColor,
+                                borderColor: `${accentColor}20`
+                            }}
                         >
-                            <Phone className="w-4 h-4" />
-                            Voice-First Governance
+                            <Sparkles className="w-4 h-4" />
+                            Next-Generation Civic AI
                         </div>
-                        <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1]" style={{ color: '#1a1a1a' }}>
-                            Making Public Services{" "}
-                            <span style={{ color: accentColor }}>Accessible</span> Through Voice
+
+                        <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-gray-900 leading-[1.05]">
+                            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 pb-2">
+                                The Voice of
+                            </span>
+                            <span
+                                className="block text-transparent bg-clip-text bg-gradient-to-r"
+                                style={{ backgroundImage: `linear-gradient(to right, ${accentColor}, #2563eb, ${accentColor})` }}
+                            >
+                                Connected Governance
+                            </span>
                         </h1>
-                        <p className="text-xl text-gray-500 leading-relaxed mb-8 max-w-2xl">
-                            Lok-Mitra AI is a unified, multilingual, AI-powered voice calling system that enables
-                            every citizen to access government and public services through simple phone calls,
-                            even on basic 2G phones without internet.
+
+                        <p className="text-2xl md:text-3xl font-medium text-gray-600 leading-relaxed mb-16 max-w-3xl mx-auto">
+                            Transforming how institutions speak with citizens.
+                            <span className="block mt-2 text-gray-500 font-normal text-xl">
+                                From creating agents on the fly to resolving queries instantly.
+                            </span>
                         </p>
-                        <div className="flex flex-wrap gap-4">
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="px-8 py-4 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-shadow"
-                                style={{ backgroundColor: accentColor }}
-                                data-testid="button-learn-more"
-                            >
-                                Learn How It Works
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.02 }}
-                                whileTap={{ scale: 0.98 }}
-                                className="px-8 py-4 bg-white border border-gray-200 rounded-xl font-semibold hover:bg-gray-50 transition-colors flex items-center gap-2"
-                                data-testid="button-contact-hero"
-                            >
-                                Contact Us <ChevronRight className="w-4 h-4" />
-                            </motion.button>
-                        </div>
                     </motion.div>
 
+                    {/* Core Highlights Grid (Replaces Voice Wave) */}
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.7, delay: 0.5 }}
-                        className="mt-16 relative"
+                        initial={{ opacity: 0, y: 40 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto"
                     >
-                        {/* Decorative Elements */}
-                        <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 via-purple-100 to-blue-100 rounded-3xl blur-2xl opacity-50" />
-
-                        <div className="relative rounded-2xl overflow-hidden border border-gray-200 shadow-2xl bg-white h-64 md:h-80 flex items-center justify-center">
-                            {/* Placeholder for Hero Image */}
-                            <div className="text-center p-8">
-                                <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: `${accentColor}15` }}>
-                                    <Phone className="w-10 h-10" style={{ color: accentColor }} />
+                        {[
+                            {
+                                icon: Brain,
+                                title: "Agents on the Fly",
+                                desc: "Describe your needs, and our engine builds a custom voice agent with tools & knowledge in seconds."
+                            },
+                            {
+                                icon: Fingerprint,
+                                title: "Native E-KYC",
+                                desc: "Secure identity verification directly via WhatsApp, linked to official portals for instant approval."
+                            },
+                            {
+                                icon: Globe,
+                                title: "Multilingual Core",
+                                desc: "Fluent in Hindi, English, and regional dialects, breaking language barriers for every citizen."
+                            }
+                        ].map((item, i) => (
+                            <div
+                                key={i}
+                                className="p-8 rounded-3xl bg-white border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 text-left group relative overflow-hidden"
+                            >
+                                <div
+                                    className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-transparent to-gray-50 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"
+                                    style={{ opacity: 0.5 }}
+                                />
+                                <div
+                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm relative z-10"
+                                    style={{ backgroundColor: `${accentColor}10` }}
+                                >
+                                    <item.icon className="w-7 h-7" style={{ color: accentColor }} />
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-800">Voice Wave Visualization</h3>
-                                <p className="text-gray-500">AI-Powered Interaction</p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-3 relative z-10">{item.title}</h3>
+                                <p className="text-gray-500 leading-relaxed relative z-10">{item.desc}</p>
                             </div>
-
-                            <div className="absolute bottom-6 left-6 right-6">
-                                <div className="flex items-center gap-4 p-4 rounded-xl bg-white/90 backdrop-blur-md border border-gray-200 shadow-lg">
-                                    <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: `${accentColor}20` }}>
-                                        <Phone className="w-6 h-6" style={{ color: accentColor }} />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-gray-800">Available 24x7 in Multiple Languages</p>
-                                        <p className="text-sm text-gray-500">Hindi, English, and regional languages</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        ))}
                     </motion.div>
                 </div>
             </section>
@@ -274,7 +358,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                                     "Unified platform for all government services",
                                     "Natural voice conversations in your language",
                                     "Instant resolution or smart human escalation",
-                                    "Works on any phone, no internet required",
+                                    "Works on any smartphone.",
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center gap-3">
                                         <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: accentColor }} />
@@ -286,29 +370,25 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                         <div className="relative">
                             <div className="absolute -inset-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-3xl blur-2xl" />
                             <div className="relative p-8 rounded-2xl bg-white border border-gray-200 shadow-lg">
-                                <div className="flex items-center justify-center mb-8">
-                                    <div className="relative">
-                                        <div
-                                            className="w-24 h-24 rounded-full flex items-center justify-center shadow-xl text-white"
-                                            style={{ background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)` }}
-                                        >
-                                            <Phone className="w-10 h-10" />
-                                        </div>
-                                        <div
-                                            className="absolute -inset-4 border-2 border-dashed rounded-full animate-spin"
-                                            style={{
-                                                animationDuration: "20s",
-                                                borderColor: `${accentColor}40`
-                                            }}
-                                        />
-                                        <div
-                                            className="absolute -inset-8 border border-dashed rounded-full animate-spin"
-                                            style={{
-                                                animationDuration: "30s",
-                                                animationDirection: "reverse",
-                                                borderColor: `${accentColor}20`
-                                            }}
-                                        />
+                                <div className="flex items-center justify-center mb-8 h-32">
+                                    <div className="flex items-center gap-1.5 h-full items-end">
+                                        {[...Array(12)].map((_, i) => (
+                                            <motion.div
+                                                key={i}
+                                                className="w-3 rounded-full"
+                                                style={{ backgroundColor: accentColor }}
+                                                animate={{
+                                                    height: [20, Math.random() * 80 + 20, 20],
+                                                    opacity: [0.5, 1, 0.5]
+                                                }}
+                                                transition={{
+                                                    duration: 1 + Math.random(),
+                                                    repeat: Infinity,
+                                                    ease: "easeInOut",
+                                                    delay: i * 0.1
+                                                }}
+                                            />
+                                        ))}
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
@@ -354,87 +434,188 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
             </AnimatedSection>
 
             {/* How It Works Section */}
-            <AnimatedSection className="py-24" id="how-it-works">
+            {/* The Magic: Core Innovation Section */}
+            <AnimatedSection className="py-24 bg-gray-50 relative">
                 <div className="max-w-7xl mx-auto px-6">
-                    <div className="grid lg:grid-cols-2 gap-16">
+                    <div className="grid lg:grid-cols-2 gap-20 items-center">
                         <div>
-                            <span className="text-sm font-medium uppercase tracking-wider" style={{ color: accentColor }}>Process</span>
-                            <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-gray-900">
-                                How It Works
+                            <span className="text-xs font-bold tracking-widest uppercase text-gray-400 mb-2 block">Core Innovation</span>
+                            <h2 className="text-4xl md:text-5xl font-bold mb-8 text-gray-900 leading-tight">
+                                Agents Created <br />
+                                <span className="text-blue-600">On The Fly</span>
                             </h2>
-                            <p className="text-lg text-gray-500 leading-relaxed mb-12">
-                                A simple, four-step process that makes government services accessible to everyone.
+                            <p className="text-lg text-gray-600 mb-12 leading-relaxed">
+                                Traditional systems require weeks of coding. LokMitra-AI builds fully functional voice agents in seconds based on your description and data.
                             </p>
 
-                            <div className="space-y-8">
-                                <StepCard
-                                    number={1}
-                                    title="Call Received or Placed"
-                                    description="A citizen calls the Lok-Mitra helpline or the system initiates an outbound call for proactive service delivery."
+                            <div className="space-y-2">
+                                <CoreInnovationCard
+                                    icon={Brain}
+                                    title="Semantic Intent Analysis"
+                                    description="Simply describe what you need: 'I want an agent to handle property tax queries'. Our engine understands the domain and intent instantly."
+                                    delay={0.2}
                                     accentColor={accentColor}
                                 />
-                                <StepCard
-                                    number={2}
-                                    title="AI Understands Intent"
-                                    description="Our multilingual AI listens and accurately understands what the citizen needs, regardless of their language or dialect."
+                                <CoreInnovationCard
+                                    icon={Wand2}
+                                    title="Dynamic Tool Generation"
+                                    description="The AI scans your uploaded documents and automatically creates the necessary software tools to query that data."
+                                    delay={0.4}
                                     accentColor={accentColor}
                                 />
-                                <StepCard
-                                    number={3}
-                                    title="Fetches Real-Time Information"
-                                    description="The system connects with relevant government databases to retrieve accurate, up-to-date information specific to the citizen's query."
+                                <CoreInnovationCard
+                                    icon={Fingerprint}
+                                    title="Native E-KYC Integration"
+                                    description="Securely authenticate users via WhatsApp. Upload identity proof, verify against databases, and redirect to our EKYC portal for instant approval."
+                                    delay={0.5}
                                     accentColor={accentColor}
                                 />
-                                <StepCard
-                                    number={4}
-                                    title="Takes Action or Escalates"
-                                    description="The AI either resolves the query directly, logs a complaint with tracking, or seamlessly connects the citizen to a human officer if needed."
+                                <CoreInnovationCard
+                                    icon={Layers}
+                                    title="Instant Knowledge Ingestion"
+                                    description="Upload PDFs, Excel sheets, or connect databases. The Knowledge Base digests it all into a queryable format in moments."
+                                    delay={0.6}
                                     accentColor={accentColor}
                                 />
                             </div>
                         </div>
 
-                        <div className="relative hidden lg:block">
-                            <div className="sticky top-32">
-                                <div className="absolute -inset-4 bg-gradient-to-br from-gray-50 to-blue-50 rounded-3xl" />
-                                <div className="relative p-8 rounded-2xl bg-white border border-gray-200">
-                                    <div className="space-y-6">
-                                        {[
-                                            { icon: Phone, label: "Incoming Call", color: "from-blue-500 to-blue-600" },
-                                            { icon: Globe, label: "Language Detection", color: "from-green-500 to-green-600" },
-                                            { icon: Database, label: "Data Retrieval", color: "from-purple-500 to-purple-600" },
-                                            { icon: CheckCircle2, label: "Resolution", color: `from-[${accentColor}] to-orange-600` },
-                                        ].map((step, i) => (
-                                            <motion.div
-                                                key={step.label}
-                                                initial={{ opacity: 0, x: -20 }}
-                                                whileInView={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: i * 0.15 }}
-                                                viewport={{ once: true }}
-                                                className="flex items-center gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100"
-                                            >
-                                                <div
-                                                    className={`w-10 h-10 rounded-lg bg-gradient-to-br flex items-center justify-center shadow-md`}
-                                                    style={i === 3 ? { background: `linear-gradient(135deg, ${accentColor}, #ea580c)` } : { background: `var(--gradient-${i}, linear-gradient(135deg, #3b82f6, #2563eb))` }} // Fallback for dynamic classes
-                                                >
-                                                    {/* Note: Tailwind arbitrary values with dynamic props don't work reliably, so using inline style for custom colors is safer */}
-                                                    {i === 0 && <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg -z-10" />}
-                                                    {i === 1 && <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-green-600 rounded-lg -z-10" />}
-                                                    {i === 2 && <div className="absolute inset-0 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg -z-10" />}
-
-                                                    <step.icon className="w-5 h-5 text-white z-10" />
-                                                </div>
-                                                <span className="font-medium text-gray-700">{step.label}</span>
-                                                {i < 3 && <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />}
-                                            </motion.div>
-                                        ))}
-                                    </div>
+                        {/* Interactive Visual Right Side */}
+                        <div className="relative">
+                            <div className="relative rounded-2xl bg-gray-900 p-8 shadow-2xl border border-gray-800 h-[650px] flex flex-col">
+                                {/* Header */}
+                                <div className="flex items-center gap-2 border-b border-gray-800 pb-4 mb-6">
+                                    <div className="w-3 h-3 rounded-full bg-red-500" />
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                    <div className="w-3 h-3 rounded-full bg-green-500" />
+                                    <span className="ml-4 text-xs text-gray-500 font-mono">system_core.ts — Generating Agent</span>
                                 </div>
+
+                                {/* Animated Code/Process Visual */}
+                                <div className="flex-1 font-mono text-sm space-y-4 overflow-hidden">
+                                    <motion.div
+                                        initial={{ opacity: 0 }}
+                                        whileInView={{ opacity: 1 }}
+                                        transition={{ staggerChildren: 0.1 }}
+                                    >
+                                        <div className="text-blue-400">$ initial_user_prompt = "Create agent for subsidy distribution"</div>
+                                        <div className="text-gray-400 ml-4">Analyzing intent... <span className="text-green-400">Done</span></div>
+                                        <div className="text-purple-400">$ scanning_knowledge_base()</div>
+                                        <div className="text-yellow-400">$ generating_tools()</div>
+                                        <div className="text-gray-500 ml-8">→ create_tool: check_eligibility()</div>
+                                        <div className="text-gray-500 ml-8">→ create_tool: verify_aadhaar_status()</div>
+                                        <div className="text-cyan-400">$ enable_module("EKYC_VERIFICATION")</div>
+                                        <div className="text-gray-400 ml-8">→ Connecting to WhatsApp Upload API...</div>
+                                        <div className="text-gray-400 ml-8">→ Linking Identity DB...</div>
+                                        <br />
+                                        <div className="text-green-400 animate-pulse"> AGENT_DEPLOYED_SUCCESSFULLY</div>
+                                    </motion.div>
+                                </div>
+
+                                {/* Floating Elements */}
+                                <motion.div
+                                    className="absolute -right-6 top-20 bg-white p-4 rounded-xl shadow-xl flex items-center gap-3 border border-gray-100"
+                                    animate={{ y: [0, 10, 0] }}
+                                    transition={{ duration: 3, repeat: Infinity }}
+                                >
+                                    <FileText className="w-8 h-8 text-red-500" />
+                                    <div>
+                                        <div className="text-xs text-gray-500">Ingested</div>
+                                        <div className="font-bold text-gray-900">Scheme_Rules.pdf</div>
+                                    </div>
+                                </motion.div>
+
+                                <motion.div
+                                    className="absolute -left-6 bottom-32 bg-white p-4 rounded-xl shadow-xl flex items-center gap-3 border border-gray-100"
+                                    animate={{ y: [0, -10, 0] }}
+                                    transition={{ duration: 4, repeat: Infinity, delay: 1 }}
+                                >
+                                    <ShieldCheck className="w-8 h-8 text-green-600" />
+                                    <div>
+                                        <div className="text-xs text-gray-500">Module Active</div>
+                                        <div className="font-bold text-gray-900">E-KYC Portal</div>
+                                    </div>
+                                </motion.div>
                             </div>
                         </div>
                     </div>
                 </div>
             </AnimatedSection>
+
+            {/* User Journey / How It Works / How To Use MERGED */}
+            <section className="py-24 bg-white">
+                <div className="max-w-4xl mx-auto px-6">
+                    <div className="text-center mb-20">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">User Journey</span>
+                        <h2 className="text-4xl font-bold mt-2 mb-6 text-gray-900">From Setup to Impact</h2>
+                        <p className="text-gray-600 text-lg">A seamless workflow designed for organizations of any size.</p>
+                    </div>
+
+                    <div className="relative">
+                        <TimelineStep
+                            number="01"
+                            title="Identity & Setup"
+                            icon={Building2}
+                            accentColor={accentColor}
+                            content={{
+                                description: "Begin by defining your organization's identity. This sets the context for the AI, tailoring its persona and responses to your specific domain.",
+                                features: ["Select Category: Government, NGO, Corporate", "Define Department Name", "Set Escalation Protocols"]
+                            }}
+                        />
+                        <TimelineStep
+                            number="02"
+                            title="Knowledge Injection"
+                            icon={Bot}
+                            accentColor={accentColor}
+                            content={{
+                                description: "This is where the magic happens. Upload your documents or connect your databases. The AI reads everything and instantly learns how to answer complex queries.",
+                                features: ["Upload PDFs/Docs", "Connect SQL/Excel", "Auto-Generate Query Tools"]
+                            }}
+                        />
+                        <TimelineStep
+                            number="03"
+                            title="E-KYC Configuration"
+                            icon={ScanLine}
+                            accentColor={accentColor}
+                            content={{
+                                description: "Enable the EKYC module to allow secure identity verification. Users can send documents via WhatsApp, which are verified against your records before directing them to the EKYC portal.",
+                                features: ["WhatsApp Document Upload", "Automated DB Lookup", "Secure Redirection Portal"]
+                            }}
+                        />
+                        <TimelineStep
+                            number="04"
+                            title="Queue Orchestration"
+                            icon={List}
+                            accentColor={accentColor}
+                            content={{
+                                description: "Manage your outreach effectively. Build calling lists, prioritize urgent contacts, and schedule outbound campaigns.",
+                                features: ["Drag-and-Drop Prioritization", "Bulk Number Import", "Real-time Queue Status"]
+                            }}
+                        />
+                        <TimelineStep
+                            number="05"
+                            title="Live Operations"
+                            icon={Phone}
+                            accentColor={accentColor}
+                            content={{
+                                description: "Watch as the AI handles hundreds of concurrent calls. It speaks naturally, accesses your data in real-time to answer questions, and takes action.",
+                                features: ["Multilingual Conversations", "Real-time Data Fetching", "Smart Human Handoff"]
+                            }}
+                        />
+                        <TimelineStep
+                            number="06"
+                            title="Insights & Analytics"
+                            icon={BarChart3}
+                            accentColor={accentColor}
+                            content={{
+                                description: "Gain deep visibility into public sentiment and service performance. Review transcripts, summaries, and success metrics.",
+                                features: ["Call Transcripts", "Outcome Analysis", "Sentiment Tracking"]
+                            }}
+                            isLast={true}
+                        />
+                    </div>
+                </div>
+            </section>
 
             {/* Who It's For Section */}
             <AnimatedSection className="py-24 bg-gray-50/50" id="who-its-for">
@@ -459,47 +640,80 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
             </AnimatedSection>
 
             {/* Vision Section */}
-            <AnimatedSection className="py-24 relative overflow-hidden" id="vision">
-                <div
-                    className="absolute inset-0"
-                    style={{
-                        background: `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`
-                    }}
-                />
-                <div className="relative max-w-7xl mx-auto px-6 text-center">
+            <AnimatedSection className="py-32 relative overflow-hidden" id="vision">
+                {/* Futuristic Background */}
+                <div className="absolute inset-0 bg-[#0a0a0a]">
+                    <div className="absolute inset-0 opacity-20"
+                        style={{
+                            backgroundImage: `linear-gradient(${accentColor} 1px, transparent 1px), linear-gradient(90deg, ${accentColor} 1px, transparent 1px)`,
+                            backgroundSize: '40px 40px',
+                            maskImage: 'radial-gradient(circle at center, black 40%, transparent 100%)'
+                        }}
+                    />
+
+                    {/* Glowing Orbs */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] opacity-30 blur-[120px]"
+                        style={{ background: accentColor }} />
+                </div>
+
+                <div className="relative max-w-7xl mx-auto px-6 text-center z-10">
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="max-w-3xl mx-auto"
+                        className="max-w-4xl mx-auto"
                     >
-                        <span className="text-sm font-medium text-white/70 uppercase tracking-wider">Looking Ahead</span>
-                        <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-8 text-white">
-                            Our Vision
+                        <div className="inline-block mb-6 px-4 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
+                            <span className="text-sm font-medium text-white tracking-[0.2em] uppercase">Our Vision of the Future</span>
+                        </div>
+
+                        <h2 className="text-5xl md:text-7xl font-bold mb-8 text-white tracking-tight">
+                            Building the <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
+                                Digital Public Infrastructure
+                            </span>
                         </h2>
-                        <p className="text-xl text-white/90 leading-relaxed mb-12">
-                            We envision a future where every citizen, regardless of their location, education,
-                            or access to technology, can interact with government services as easily as making
-                            a phone call. Voice-first governance that is truly inclusive, scalable, and
-                            transformative for public service delivery across India.
+
+                        <p className="text-xl text-gray-400 leading-relaxed mb-16 max-w-2xl mx-auto font-light">
+                            We aren't just building a chatbot. We are constructing the voice layer for the entire nation's digital services.
+                            One interface, a billion voices.
                         </p>
 
-                        <div className="grid md:grid-cols-3 gap-6">
+                        <div className="grid md:grid-cols-3 gap-8">
                             {[
-                                { title: "Voice-First Governance", desc: "Making voice the primary interface for public services" },
-                                { title: "Inclusive Access", desc: "Reaching every citizen, including those without smartphones" },
-                                { title: "Scalable Delivery", desc: "Building infrastructure for nationwide service delivery" },
+                                {
+                                    icon: Phone,
+                                    title: "Voice-First Interface",
+                                    desc: "Replacing complex forms with natural conversation. No typing, no scrolling, just speaking."
+                                },
+                                {
+                                    icon: Users,
+                                    title: "Radical Inclusion",
+                                    desc: "Bridging the digital divide by making technology accessible to the illiterate and elderly."
+                                },
+                                {
+                                    icon: Globe,
+                                    title: "Population Scale",
+                                    desc: "Engineered to handle 1.4 billion citizens without latency or downtime."
+                                },
                             ].map((item, i) => (
                                 <motion.div
                                     key={item.title}
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.1 }}
+                                    transition={{ delay: i * 0.15 }}
                                     viewport={{ once: true }}
-                                    className="p-6 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20"
+                                    className="group relative p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2"
                                 >
-                                    <h3 className="text-lg font-semibold text-white mb-2">{item.title}</h3>
-                                    <p className="text-sm text-white/80">{item.desc}</p>
+                                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
+
+                                    <div className="relative z-10 flex flex-col items-center">
+                                        <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 text-white">
+                                            <item.icon className="w-8 h-8" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-4">{item.title}</h3>
+                                        <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
+                                    </div>
                                 </motion.div>
                             ))}
                         </div>

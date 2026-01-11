@@ -18,6 +18,7 @@ import {
     Headphones,
     CheckCircle2,
     ChevronRight,
+    Sparkles,
 } from "lucide-react";
 import { UserSession } from '../../types';
 
@@ -114,7 +115,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
         { icon: Wifi, title: "Works Without Internet", description: "Operates on basic 2G phone calls, ensuring accessibility for citizens in remote areas without smartphones." },
         { icon: Users, title: "Massive Call Scalability", description: "Handles thousands of simultaneous calls, ensuring no citizen is left waiting during peak demand periods." },
         { icon: BarChart3, title: "Analytics Dashboard", description: "Provides real-time insights into citizen queries, enabling data-driven improvements in service delivery." },
-        { icon: Zap, title: "Low-Latency Experience", description: "Delivers fast, responsive conversations that feel natural and keep citizens engaged without frustrating delays." },
+        { icon: Sparkles, title: "Low-Latency Experience", description: "Delivers fast, responsive conversations that feel natural and keep citizens engaged without frustrating delays." },
         // Added based on user request in previous turn
         { icon: MessageSquare, title: "Whatsapp Integration", description: "Seamless WhatsApp bot integration for automated chat support and query resolution." },
     ];

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, useInView } from "motion/react";
 import {
     Brain,
@@ -28,6 +28,8 @@ import {
     CheckCircle2,
     ChevronRight,
     Sparkles,
+    PhoneCallIcon,
+    ChevronDown,
 } from "lucide-react";
 import { UserSession } from '../../types';
 
@@ -184,6 +186,20 @@ function UserCard({ icon: Icon, title, description, accentColor }: { icon: any; 
 }
 
 export default function AboutPage({ userSession, accentColor }: AboutPageProps) {
+    const [currentCheckpoint, setCurrentCheckpoint] = useState(1);
+
+    const checkpoints = ['checkpoint-1', 'checkpoint-2', 'checkpoint-3'];
+
+    const scrollToNextCheckpoint = () => {
+        const nextCheckpoint = currentCheckpoint === 3 ? 1 : currentCheckpoint + 1;
+        const element = document.getElementById(checkpoints[nextCheckpoint - 1]);
+
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setCurrentCheckpoint(nextCheckpoint);
+        }
+    };
+
     const features = [
         { icon: Clock, title: "24x7 Instant Support", description: "Round-the-clock voice assistance, ensuring citizens get help whenever they need it, without waiting in queues." },
         { icon: Globe, title: "Multilingual Understanding", description: "Supports Hindi, English, and regional languages, breaking down communication barriers for all citizens." },
@@ -192,7 +208,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
         { icon: Database, title: "Real-Time Data Integration", description: "Connects with government databases to provide accurate, up-to-date information on services and schemes." },
         { icon: Users, title: "Massive Call Scalability", description: "Handles thousands of simultaneous calls, ensuring no citizen is left waiting during peak demand periods." },
         { icon: BarChart3, title: "Analytics Dashboard", description: "Provides real-time insights into citizen queries, enabling data-driven improvements in service delivery." },
-        { icon: Sparkles, title: "Low-Latency Experience", description: "Delivers fast, responsive conversations that feel natural and keep citizens engaged without frustrating delays." },
+        { icon: Sparkles, title: "Low-Latency Experience", description: "Delivers fast, responsive conversations that feel natural and keep citizens engaged without frustrating delays with 5-ms latency." },
         // Added based on user request in previous turn
         { icon: MessageSquare, title: "Whatsapp Integration", description: "Seamless WhatsApp bot integration for automated chat support and query resolution." },
     ];
@@ -209,7 +225,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
     return (
         <div className="min-h-screen bg-transparent">
             {/* Hero Section */}
-            <section className="relative pt-20 pb-20 overflow-hidden" id="who-we-are">
+            <section className="relative pt-20 pb-20 overflow-hidden" id="checkpoint-1">
                 <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-transparent" />
                 <div className="absolute inset-0 opacity-30 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]" />
 
@@ -229,7 +245,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                             }}
                         >
                             <Sparkles className="w-4 h-4" />
-                            Next-Generation Civic AI
+                            Boosting Civic Interaction through AI
                         </div>
 
                         <h1 className="text-6xl md:text-7xl lg:text-8xl font-black tracking-tight mb-8 text-gray-900 leading-[1.05]">
@@ -257,35 +273,41 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                         initial={{ opacity: 0, y: 40 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, delay: 0.2 }}
-                        className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto"
+                        className="grid md:grid-cols-4 gap-4 max-w-6xl mx-auto place-items-center text-center flex-auto"
+
                     >
                         {[
                             {
                                 icon: Brain,
-                                title: "Agents on the Fly",
+                                title: "Completely Customizable Agents",
                                 desc: "Describe your needs, and our engine builds a custom voice agent with tools & knowledge in seconds."
                             },
                             {
-                                icon: Fingerprint,
-                                title: "Native E-KYC",
-                                desc: "Secure identity verification directly via WhatsApp, linked to official portals for instant approval."
+                                icon: Globe,
+                                title: "Max User Accessibility",
+                                desc: "Multilanguage Support,Automated Applications/Complains/Ticket Registration & Emergency Expert Escalation."
                             },
                             {
-                                icon: Globe,
-                                title: "Multilingual Core",
-                                desc: "Fluent in Hindi, English, and regional dialects, breaking language barriers for every citizen."
+                                icon: PhoneCallIcon,
+                                title: "Real-time Chat/Call Updates through Whatsapp",
+                                desc: "Agents interact through Whatsapp for any query and call follow-ups."
+                            },
+                            {
+                                icon: Fingerprint,
+                                title: "Native E-KYC Support via Agentic Call",
+                                desc: "Secure identity verification directly via WhatsApp, linked to official portals for instant approval."
                             }
                         ].map((item, i) => (
                             <div
                                 key={i}
-                                className="p-8 rounded-3xl bg-white border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 text-left group relative overflow-hidden"
+                                className="p-8 rounded-3xl bg-white border border-gray-100 shadow-xl hover:shadow-2xl transition-all duration-300 text-center group relative overflow-hidden"
                             >
                                 <div
                                     className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-transparent to-gray-50 rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-500"
                                     style={{ opacity: 0.5 }}
                                 />
                                 <div
-                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm relative z-10"
+                                    className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-sm relative z-10 mx-auto"
                                     style={{ backgroundColor: `${accentColor}10` }}
                                 >
                                     <item.icon className="w-7 h-7" style={{ color: accentColor }} />
@@ -315,7 +337,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                         {[
                             { title: "Low Digital Literacy", desc: "Many citizens lack the skills to navigate digital platforms or smartphone applications." },
                             { title: "Language Barriers", desc: "Government services often don't support regional languages, excluding millions." },
-                            { title: "Overloaded Helplines", desc: "Traditional call centers can't handle the volume of citizen queries efficiently." },
+                            { title: "Overloaded Helplines", desc: "Traditional call centers can't handle the volume of citizen queries efficiently.Also, large amount of manpower is required to function at current levels." },
                             { title: "Fragmented Systems", desc: "Citizens must navigate multiple disconnected systems to access different services." },
                         ].map((item, i) => (
                             <motion.div
@@ -412,7 +434,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
             </AnimatedSection>
 
             {/* Features Section */}
-            <AnimatedSection className="py-24 bg-gray-50/50" id="features">
+            <AnimatedSection className="py-24 bg-gray-50/50" id="checkpoint-2">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="max-w-3xl mx-auto text-center mb-16">
                         <span className="text-sm font-medium uppercase tracking-wider" style={{ color: accentColor }}>Capabilities</span>
@@ -639,8 +661,8 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                 </div>
             </AnimatedSection>
 
-            {/* Vision Section */}
-            <AnimatedSection className="py-32 relative overflow-hidden" id="vision">
+            {/* Vision & Roadmap Section */}
+            <AnimatedSection className="py-32 relative overflow-hidden" id="checkpoint-3">
                 {/* Futuristic Background */}
                 <div className="absolute inset-0 bg-[#0a0a0a]">
                     <div className="absolute inset-0 opacity-20"
@@ -656,73 +678,264 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                         style={{ background: accentColor }} />
                 </div>
 
-                <div className="relative max-w-7xl mx-auto px-6 text-center z-10">
+                <div className="relative max-w-7xl mx-auto px-6 z-10">
+                    {/* Header */}
                     <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="max-w-4xl mx-auto"
+                        className="max-w-4xl mx-auto text-center mb-20"
                     >
                         <div className="inline-block mb-6 px-4 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
-                            <span className="text-sm font-medium text-white tracking-[0.2em] uppercase">Our Vision of the Future</span>
+                            <span className="text-sm font-medium text-white tracking-[0.2em] uppercase">Our Vision & Roadmap</span>
                         </div>
 
                         <h2 className="text-5xl md:text-7xl font-bold mb-8 text-white tracking-tight">
-                            Building the <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-gray-200 to-gray-400">
-                                Digital Public Infrastructure
-                            </span>
+                            Future Scope and Planning<br />
                         </h2>
-
-                        <p className="text-xl text-gray-400 leading-relaxed mb-16 max-w-2xl mx-auto font-light">
-                            We aren't just building a chatbot. We are constructing the voice layer for the entire nation's digital services.
-                            One interface, a billion voices.
-                        </p>
-
-                        <div className="grid md:grid-cols-3 gap-8">
-                            {[
-                                {
-                                    icon: Phone,
-                                    title: "Voice-First Interface",
-                                    desc: "Replacing complex forms with natural conversation. No typing, no scrolling, just speaking."
-                                },
-                                {
-                                    icon: Users,
-                                    title: "Radical Inclusion",
-                                    desc: "Bridging the digital divide by making technology accessible to the illiterate and elderly."
-                                },
-                                {
-                                    icon: Globe,
-                                    title: "Population Scale",
-                                    desc: "Engineered to handle 1.4 billion citizens without latency or downtime."
-                                },
-                            ].map((item, i) => (
-                                <motion.div
-                                    key={item.title}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    whileInView={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.15 }}
-                                    viewport={{ once: true }}
-                                    className="group relative p-8 rounded-3xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-500 hover:-translate-y-2"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl" />
-
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500 text-white">
-                                            <item.icon className="w-8 h-8" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-4">{item.title}</h3>
-                                        <p className="text-sm text-gray-400 leading-relaxed">{item.desc}</p>
-                                    </div>
-                                </motion.div>
-                            ))}
-                        </div>
                     </motion.div>
+
+                    {/* Roadmap Timeline */}
+                    <div className="max-w-6xl mx-auto">
+
+
+                        {/* Phase 1: Delhi Government Collaboration */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6 }}
+                            className="mb-16 relative"
+                        >
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 via-blue-400 to-transparent" />
+
+                            <div className="pl-12">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border-2 border-blue-500 flex items-center justify-center">
+                                        <span className="text-2xl font-bold text-blue-400">01</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-3xl font-bold text-white">Delhi Government Collaboration</h4>
+                                        <p className="text-blue-400 font-medium">Q1-Q2 2026 • Pilot Phase</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <Landmark className="w-5 h-5 text-blue-400" />
+                                            Initial Deployment
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <span>Partner with 3-5 key Delhi government departments (Municipal, Health, Welfare)</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <span>Deploy dedicated helpline numbers for each department</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <span>Integrate with existing Delhi government databases and portals</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-blue-400 mt-0.5 flex-shrink-0" />
+                                                <span>Train AI on Delhi-specific schemes, policies, and procedures</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <BarChart3 className="w-5 h-5 text-blue-400" />
+                                            Target Metrics
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">50,000+</strong> citizen calls handled in first 3 months</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">85%+</strong> query resolution rate without human intervention</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">90%+</strong> citizen satisfaction score</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">60%</strong> reduction in average call handling time</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </motion.div>
+
+                        {/* Phase 2: Refinement & Expansion */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: 0.2 }}
+                            className="mb-16 relative"
+                        >
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-500 via-purple-400 to-transparent" />
+
+                            <div className="pl-12">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border-2 border-purple-500 flex items-center justify-center">
+                                        <span className="text-2xl font-bold text-purple-400">02</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-3xl font-bold text-white">Refinement & Expansion</h4>
+                                        <p className="text-purple-400 font-medium">Q3-Q4 2026 • Growth Phase</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <Wand2 className="w-5 h-5 text-purple-400" />
+                                            Feature Enhancement
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                                                <span>We fine tune existing features and add new features to respond to inputs given by growing userbase.</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                                                <span>Add video call support for visual verification and assistance</span>
+                                            </li>
+                                           
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <Globe className="w-5 h-5 text-purple-400" />
+                                            Geographic Expansion
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                                                <span>Expand to greater NCR area (Gurgaon, Ghaziabad, etc.)</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-purple-400 mt-0.5 flex-shrink-0" />
+                                                <span>Support for 15+ Indian languages and regional variations</span>
+                                            </li>
+
+                                        </ul>
+                                    </div>
+                                </div>
+
+
+                            </div>
+                        </motion.div>
+
+                        {/* Phase 3: Nationwide Implementation */}
+                        <motion.div
+                            initial={{ opacity: 0, x: -50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6, delay: 0.4 }}
+                            className="relative"
+                        >
+                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-green-500 via-green-400 to-transparent" />
+
+                            <div className="pl-12">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-16 h-16 rounded-2xl bg-green-500/20 border-2 border-green-500 flex items-center justify-center">
+                                        <span className="text-2xl font-bold text-green-400">03</span>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-3xl font-bold text-white">Nationwide Implementation</h4>
+                                        <p className="text-green-400 font-medium">2027 & Beyond • National Scale</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid md:grid-cols-2 gap-6 mb-8">
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <Landmark className="w-5 h-5 text-green-400" />
+                                            Central Government Integration
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                                <span>Integrate with Digital India initiatives and national portals</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                                <span>Connect with Aadhaar, DigiLocker, and UPI ecosystems</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                                <span>Deploy across all 28 states and 8 union territories</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                                <span>Establish as official Digital Public Good (DPG)</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <CheckCircle2 className="w-5 h-5 text-green-400 mt-0.5 flex-shrink-0" />
+                                                <span>Partner with MEITY and NIC for infrastructure support</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-6">
+                                        <h5 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                            <Sparkles className="w-5 h-5 text-green-400" />
+                                            Impact at Scale
+                                        </h5>
+                                        <ul className="space-y-3 text-gray-300">
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">100 Million+</strong> citizens served annually</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">500+</strong> government departments onboarded</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">22+</strong> official languages supported</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">₹1000+ Crore</strong> saved in operational costs annually</span>
+                                            </li>
+                                            <li className="flex items-start gap-2">
+                                                <Zap className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
+                                                <span><strong className="text-white">24/7</strong> availability across 650+ districts</span>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+
+                                <div className="bg-gradient-to-br from-green-500/20 to-blue-500/20 border-2 border-green-500/30 rounded-3xl p-8 text-center">
+                                    <h5 className="text-2xl font-bold text-white mb-3">The Ultimate Vision</h5>
+                                    <p className="text-gray-300 text-lg leading-relaxed max-w-3xl mx-auto">
+                                        By 2028, every Indian citizen—regardless of literacy, language, or location—will have instant access to government services through a simple phone call.
+                                        Lok-Mitra AI will become the <span className="text-green-400 font-semibold">primary interface</span> between citizens and the state,
+                                        democratizing access to information and services at an unprecedented scale.
+                                    </p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
                 </div>
             </AnimatedSection>
 
             {/* Footer */}
-            <footer className="py-12 border-t border-gray-200 mt-12">
+            <footer className="py-12 border-t border-gray-200 mt-12" id="footer">
                 <div className="max-w-7xl mx-auto px-6">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                         <div className="flex items-center gap-3">
@@ -740,6 +953,28 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                     </div>
                 </div>
             </footer>
+
+            {/* Scroll to Next Checkpoint Button */}
+            <motion.button
+                onClick={scrollToNextCheckpoint}
+                className="fixed bottom-8 right-8 w-16 h-16 rounded-full bg-[#001f3f] text-white shadow-2xl hover:shadow-3xl transition-all duration-300 flex items-center justify-center z-50 group"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 1 }}
+                aria-label="Scroll to next checkpoint"
+            >
+                <motion.div
+                    animate={{ y: [0, 4, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                    <ChevronDown className="w-8 h-8" />
+                </motion.div>
+
+                {/* Ripple effect on hover */}
+                <div className="absolute inset-0 rounded-full bg-white opacity-0 group-hover:opacity-10 transition-opacity" />
+            </motion.button>
         </div>
     );
 }

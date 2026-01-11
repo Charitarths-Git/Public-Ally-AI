@@ -93,18 +93,19 @@ export default function ResultsPage({ accentColor }: ResultsPageProps) {
   
   // Initial fetch on mount
   fetchCallHistory();
+  const pollInterval = 30000;
 
   // Poll for new calls every 5-10 seconds
   const interval = setInterval(() => {
     // Only execute if the user is actually looking at this tab
-    if (document.visibilityState === 'visible') {
+    if (document.visibilityState === 'visible' && document.hidden) {
       console.log('🔄 Tab active: Polling for new calls...');
       fetchCallHistory();
     } else {
       // Logic is paused while tab is in background
       console.log('💤 Tab backgrounded: Polling paused to save server resources.');
     }
-  }, 5000); // You can increase this to 10000 (10s) for better stability
+  }, pollInterval); // You can increase this to 10000 (10s) for better stability
   
   return () => {
     console.log('🛑 ResultsPage unmounting, clearing interval');

@@ -15,7 +15,7 @@ from .structured_output import ToolMetadata
 from .utils import deploy_supabase_edge_logic, fetch_google_sheet_as_df
 from .models import CallHistory, CallingSession, KnowledgeDocument, ConnectedDatabase, HumanExpert, AgentConfiguration
 from .serializers import CallHistorySerializer, CallingSessionSerializer
-from .vapi_service import VAPIService, sanitize_function_name
+from .vapi_service import VAPIService, sanitize_function_name, send_whatsapp_notification
 from rest_framework.parsers import MultiPartParser, FormParser
 import pandas as pd
 from dotenv import load_dotenv
@@ -71,6 +71,9 @@ def start_outbound_calling(request):
     
     phone_number = request.data.get('phone_number')
     file_ids = request.data.get('file_ids', [])
+    Notes = request.data.get('notes')
+    print(f"📝 Notes for call: {Notes}")
+    name_person = request.data.get('name')
     
     if not phone_number:
         return Response({'success': False, 'error': 'phone_number is required'}, status=400)
@@ -109,8 +112,10 @@ def start_outbound_calling(request):
     service = VAPIService()
     call_response = service.start_outbound_call(
         phone_number, 
-        all_tool_ids, 
-        file_ids,
+        all_tool_ids,
+        file_ids, 
+        Notes,
+        name_person,
         agent_name=agent_config.name,
         agent_description=agent_config.description,
         enabled_base_tool_ids=enabled_base_tool_ids
@@ -667,6 +672,10 @@ def vapi_webhook(request):
             print(f"🎙️ Stereo Recording URL: {stereo_recording_url}")
             print("="*80 + "\n")
 
+            if phone_number != 'Unknown' and summary:
+                # We trigger this after saving to DB to ensure we have the data
+                send_whatsapp_notification(phone_number, summary)
+
 
             
             # Save transcript to backend/history/call.txt file
@@ -884,6 +893,7 @@ def connect_supabase(request):
 @api_view(['POST'])
 def connect_google_sheets(request):
     data = request.data
+    print(f"📥 Google Sheets Connect Request Data: {data}")
     sheet_url = data.get('sheet_url')
     db_name = data.get('name', 'Google_Sheet_DB')
     can_read = data.get('can_read') == 'true'
@@ -895,7 +905,9 @@ def connect_google_sheets(request):
         return Response({"error": "Invalid Google Sheet URL format."}, status=400)
     
     spreadsheet_id = match.group(1)
+    print(f"🔑 Extracted Spreadsheet ID: {spreadsheet_id}")
     vapi_service = VAPIService()
+    print(f"🤖 VAPI Service Initialized for Google Sheets Integration")
     tool_ids = []
     columns = []
     df_data = []
@@ -991,7 +1003,6 @@ def connect_google_sheets(request):
         return Response({"error": str(e)}, status=500)
 
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 @csrf_exempt
 @api_view(['POST'])
@@ -1458,3 +1469,5 @@ def update_queue_status(request, pk):
     new_status = request.data.get('status')
     supabase.table('calling_queue').update({"status": new_status}).eq("id", pk).execute()
     return Response({'success': True})
+
+

@@ -82,7 +82,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "https://phonematic-streamingly-jayda.ngrok-free.dev",
-    "https://modest-reflection-production-893c.up.railway.app"
+    "https://modest-reflection-production-893c.up.railway.app",
+    "https://magnificent-emotion-production-e786.up.railway.app",
+    "https://frontend1-production-ddbe.up.railway.app"
 ]
 
 if DEPLOYED_URL:

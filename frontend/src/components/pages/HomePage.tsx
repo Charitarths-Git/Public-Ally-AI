@@ -19,7 +19,7 @@ interface QueueEntry {
   id: string;
   name: string;
   phone: string;
-  notes?: string;
+  description?: string;
   status: 'pending' | 'calling' | 'completed';
 }
 
@@ -197,8 +197,10 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
       // 4. TRIGGER VAPI CALL: Send the request to your Django backend
       const response = await axios.post(API_ENDPOINTS.START_OUTBOUND_CALLING, {
+        name: nextPerson.name,
         phone_number: nextPerson.phone.replace(/\s+/g, ''),
-        file_ids: activeFileIds
+        file_ids: activeFileIds,
+        notes: nextPerson.description || ''
       });
 
       if (response.data.success) {
@@ -845,8 +847,8 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   </div>
                   
                   <p className="text-sm sm:text-base text-gray-600 break-all">{entry.phone}</p>
-                  {entry.notes && (
-                    <p className="text-xs sm:text-sm text-gray-500 mt-1 italic break-words">{entry.notes}</p>
+                  {entry.description && (
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1 italic break-words">{entry.description}</p>
                   )}
                 </div>
                 <span className="text-xs sm:text-sm text-gray-400 font-mono flex-shrink-0">#{index + 1}</span>

@@ -5,12 +5,30 @@ from dotenv import load_dotenv
 from google import genai
 from google.api_core.exceptions import ResourceExhausted
 import time
+from langchain_google_genai import ChatGoogleGenerativeAI
+from .structured_output import ToolMetadata
 
 load_dotenv()
 
 DEPLOYED_URL = os.getenv('DEPLOYED_URL')
+TWILIO_WHATSAPP_URL = os.getenv('TWILIO_WHATSAPP_URL', 'https://your-twilio-function-url.com/whatsapp')
+USE_WHATSAPP_API_KEY = os.getenv('USE_WHATSAPP_API_KEY', 'false').lower() == 'true'
+WHATSAPP_INTERNAL_API_KEY = os.getenv('WHATSAPP_INTERNAL_API_KEY', '')
 print(f"🚀 DEPLOYED_URL: {DEPLOYED_URL}")
 gemini_client = genai.Client(api_key=os.getenv('GEMINI_API_KEY'))
+_llm = None
+
+def get_llm_des():
+    """Returns a simple LLM instance for text generation (e.g., greetings)"""
+    global _llm
+    if _llm is None:
+        _llm = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash", # Updated to current stable version
+            temperature=0.3,
+            google_api_key=os.getenv("GEMINI_API_KEY")
+        )
+    return _llm
+
 
 TOOL_ID = ["8be56882-fe70-4871-b7ec-ec6176ecfc5c","ffce1d40-0d91-4eca-aec3-8520ad1bf46d"]
 
@@ -120,7 +138,7 @@ class VAPIService:
 
 
 
-    def start_outbound_call(self, phone_number, db_tool_ids, file_ids=None, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
+    def start_outbound_call(self, phone_number, db_tool_ids,file_ids,Notes,name_person, agent_name=None, agent_description=None, enabled_base_tool_ids=None):
         """
         Initiates an outbound call to a phone number.
         Uses agent_name and agent_description if provided.
@@ -135,6 +153,26 @@ class VAPIService:
         # Use provided name or default
         name = agent_name or "Sahayaki"
         description = agent_description or "A helpful AI voice assistant"
+        customer_context = Notes
+        person_name = name_person or "User"
+        print(f"📝 Generating greeting for {person_name} with context: {customer_context}")
+
+        try:
+            llm = get_llm_des() # Reusing your existing get_llm setup
+            greeting_prompt = (
+                f"You are an AI assistant named {name}. Your purpose is: {description}+{customer_context} for {person_name}.\n"
+                "You are making an OUTBOUND call to a user. Generate a short, professional, "
+                "and polite one-sentence opening greeting that introduces yourself and clearly "
+            )
+            # Use .invoke() as seen in your previous snippets
+            greeting_response = llm.invoke(greeting_prompt)
+            # Assuming the structured LLM returns an object with a 'summary' or 'content' field
+            first_message = greeting_response.content.strip()
+            print(f"✨ Generated Greeting: {first_message}")
+
+        except Exception as e:
+            print(f"⚠️ Failed to generate greeting, using default. Error: {e}")
+            first_message = f"Namaste, I am {os.name}. I am calling regarding {description}."
         
         # Use enabled base tools or default to all base tools
         base_tools = enabled_base_tool_ids if enabled_base_tool_ids is not None else TOOL_ID
@@ -148,7 +186,7 @@ class VAPIService:
         payload = {
             "assistant": {
                 "name": name,
-                "firstMessage": f"Namaste, I am {name}. How can I help you?",
+                "firstMessage": first_message,
                 "maxDurationSeconds": 43200,
                 "silenceTimeoutSeconds": 3600,
                 "model": {
@@ -209,6 +247,7 @@ class VAPIService:
                     "provider": "google",
                     "language": "Multilingual"
                 },
+                "endCallFunctionEnabled": True,
                 # Server configuration for webhook
                 "server": {
                     "url": f"{DEPLOYED_URL}/api/vapi-webhook/"
@@ -430,7 +469,7 @@ class VAPIService:
                         "search_query": {"type": "string", "description": "The specific value or ID to look for"},
                         "target_column": {"type": "string", "description": "The column name to search within"}
                     },
-                    "required": ["search_query"]
+                    "required": ["search_query","target_column"]
                 }
             },
             "server": {
@@ -548,3 +587,38 @@ class VAPIService:
         except Exception as e:
             print(f"❌ TransferCall Tool Error: {e}")
             return {"error": str(e)}
+
+
+def send_whatsapp_notification(phone_number, summary):
+    """
+    Sends the call summary to the user via WhatsApp using the Twilio Function.
+    """
+    print(f"📤 Attempting to send WhatsApp to {phone_number}...")
+    
+    # Clean the phone number (ensure it has the '+' prefix)
+    to_number = phone_number if phone_number.startswith('+') else f"+{phone_number}"
+    
+    # Prepare the message content
+    # You can customize this template as needed
+    whatsapp_message = f"Hello! Here is the summary of our recent call:\n\n{summary}"
+
+    payload = {
+        "to": to_number,
+        "message": whatsapp_message,
+        "useTemplate": "false"  # Sending the summary as a free-form message
+    }
+
+    if USE_WHATSAPP_API_KEY:
+        payload["apiKey"] = WHATSAPP_INTERNAL_API_KEY
+
+    try:
+        response = requests.post(
+            TWILIO_WHATSAPP_URL,
+            data=payload,
+            timeout=15
+        )
+        print(f"✅ WhatsApp Status: {response.status_code} | Response: {response.text}")
+        return True
+    except requests.exceptions.RequestException as e:
+        print(f"❌ WhatsApp Request failed: {str(e)}")
+        return False

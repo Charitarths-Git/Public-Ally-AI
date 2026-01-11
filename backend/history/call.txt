@@ -1,24 +1,24 @@
-Call ID: 019bab17-e818-733d-b428-6edc0725d43d
-Phone Number: +917206015146
+Call ID: 019badba-df45-7ff9-9065-c4572de57446
+Phone Number: +917559192810
 Status: queued
 Ended Reason: customer-ended-call
-Duration: 142.075 seconds
-Cost: $0.1981
-Started At: 2026-01-11T03:27:15.977Z
-Ended At: 2026-01-11T03:29:38.052Z
-Recording URL: https://storage.vapi.ai/019bab17-e818-733d-b428-6edc0725d43d-1768102180599-4732f839-bb16-4cfb-af9d-5663406b0c60-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019bab17-e818-733d-b428-6edc0725d43d-1768102180599-2c483c38-5c38-4aa4-9591-03f431abcb9b-stereo.wav
+Duration: 34.761 seconds
+Cost: $0.0652
+Started At: 2026-01-11T15:44:38.227Z
+Ended At: 2026-01-11T15:45:12.988Z
+Recording URL: https://storage.vapi.ai/019badba-df45-7ff9-9065-c4572de57446-1768146315532-f2c63054-cc49-4bc4-b1cf-3e6665abc20e-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019badba-df45-7ff9-9065-c4572de57446-1768146315532-8598e008-ae38-4653-9b94-5d609e7f8a41-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The user inquired about pension rules, government schemes, and asked to check if an appointment was scheduled. The AI requested the user's name to find the appointment information, and the user provided "Naman." The call ended after the user stated their name.
+The AI offered assistance with pension rules or applications. However, the user immediately requested to transfer the call, and the call subsequently ended because the customer hung up.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-User: हेलो सायकी प्लीज टेल मी अबाउट मोटर रूल्स मोटा रूल मोटा रूल बोल मोटा रूल Bonjour homme. Please tell me about pension rules. मेरे को गवर्नमेंट स्कीम्स के बारे में बताओ। अच्छा मेरे को चेक करना था कि मेरी अपॉइंटमेंट शेड्यूल्ड है क्या
-AI: कृपया अपना नाम बताइए ताकि मैं आपकी अपॉइंटमेंट की जानकारी खोज सकूं।
-User: मेरा नाम नमन है।
+User: Okay.
+AI: Thank you. How can I assist you today regarding pension rules or your application? Please let me know your query.
+User: transfer the call.
 
 ================================================================================

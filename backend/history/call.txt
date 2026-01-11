@@ -1,21 +1,24 @@
-Call ID: 019ba749-b371-700f-8973-38423795e6af
+Call ID: 019baaf7-db64-7cc4-bf68-d18530349f18
 Phone Number: +917206015146
-Status: ended
-Ended Reason: customer-did-not-answer
-Duration: 0 seconds
-Cost: $0
-Started At: 
-Ended At: 
-Recording URL: 
-Stereo Recording URL: 
+Status: queued
+Ended Reason: customer-ended-call
+Duration: 99.927 seconds
+Cost: $0.1158
+Started At: 2026-01-11T02:52:15.081Z
+Ended At: 2026-01-11T02:53:55.008Z
+Recording URL: https://storage.vapi.ai/019baaf7-db64-7cc4-bf68-d18530349f18-1768100037574-8021dcb9-2453-4d28-b041-42a82b0bd8d9-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019baaf7-db64-7cc4-bf68-d18530349f18-1768100037574-fe8d95b9-42de-4c39-8049-c3f76f63f320-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-
+Benim Nağmen Numan called to book an appointment for January 2, 2026, at 10 AM, providing contact number 7206015146. The AI successfully confirmed the appointment. The user acknowledged the confirmation and thanked the AI before ending the call.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-No transcript available
+User: Hello Saiki, I would like to book an appointment. Benim nağmen numan. मेरी डेट है अ 2 January 2026 Time hai 10 a.m. कांटेक्ट नंबर है 7206015146
+AI: आपकी नियुक्ति 2 जनवरी 2026 को सुबह 10:00 बजे के लिए सफलतापूर्वक दर्ज कर ली गई है क्या आपको अधिक
+User: आ गया ठीक है थैंक यू
+
 ================================================================================

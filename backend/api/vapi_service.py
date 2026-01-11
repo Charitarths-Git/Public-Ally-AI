@@ -410,39 +410,47 @@ class VAPIService:
         
 
     def create_db_function_tool(self, name, summary, columns, permission_type):
-            url = f"{self.base_url}/tool"
-            
-            # Sanitize the function name to meet Vapi requirements
-            sanitized_name = sanitize_function_name(name)
-            
-            # This is what the AI reads to decide whether to use this database
-            description = (
-                f"Use this tool for {permission_type} operations. "
-                f"Knowledge Base Summary: {summary}. "
-                f"Available columns/fields: {', '.join(columns)}."
-            )
+        url = f"{self.base_url}/tool"
+        sanitized_name = sanitize_function_name(name)
+        
+        description = (
+            f"Use this tool for {permission_type} operations. "
+            f"Knowledge Base Summary: {summary}. "
+            f"Available columns/fields: {', '.join(columns)}."
+        )
 
-            payload = {
-                "type": "function",
-                "function": {
-                    "name": sanitized_name,
-                    "description": description,
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "search_query": {"type": "string", "description": "The specific value or ID to look for"},
-                            "target_column": {"type": "string", "description": "The column name to search within"}
-                        },
-                        "required": ["search_query"]
-                    }
-                },
-                "server": {
-                    "url": f"{DEPLOYED_URL}/api/execute-db-query/" 
+        payload = {
+            "type": "function",
+            "function": {
+                "name": sanitized_name,
+                "description": description,
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "search_query": {"type": "string", "description": "The specific value or ID to look for"},
+                        "target_column": {"type": "string", "description": "The column name to search within"}
+                    },
+                    "required": ["search_query"]
                 }
+            },
+            "server": {
+                "url": f"{DEPLOYED_URL}/api/execute-db-query/" 
             }
+        }
 
+        try:
             res = requests.post(url, headers=self.headers, json=payload)
+            
+            # DEBUGGING: Print the status and raw text if it's not JSON
+            if res.status_code != 201 and res.status_code != 200:
+                print(f"❌ Vapi Tool Creation Failed! Status: {res.status_code}")
+                print(f"❌ Response Text: {res.text}")
+                return {"error": "Vapi API Error", "status": res.status_code}
+
             return res.json()
+        except Exception as e:
+            print(f"❌ Request Exception: {str(e)}")
+            return {"error": str(e)}
     
     def create_supabase_sql_tool(self, name, summary, columns, edge_function_url):
         """

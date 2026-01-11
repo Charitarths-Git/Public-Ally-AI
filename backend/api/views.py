@@ -589,7 +589,7 @@ def get_call_history(request):
     """
     try:
         # Fetch all call history records
-        call_histories = CallHistory.objects.all().order_by('-created_at')
+        call_histories = CallHistory.objects.all().order_by('-created_at')[:20]
         
         # Serialize the data
         serializer = CallHistorySerializer(call_histories, many=True)
@@ -903,8 +903,10 @@ def connect_google_sheets(request):
     try:
         # Fetch initial data for LLM analysis
         df, columns = fetch_google_sheet_as_df(spreadsheet_id)
+        print(f"📊 Fetched Google Sheet with shape: {df.shape}")
         sample_data = df.head(5).to_string()
         _, structured_llm = get_llm()
+
 
         # 2. READ LOGIC: Analysis for Information Retrieval
         if can_read:
@@ -915,8 +917,10 @@ def connect_google_sheets(request):
             )
             read_analysis = structured_llm.invoke(read_prompt)
             read_desc = read_analysis.summary
+            print(f"📝 Read Tool Description: {read_desc}")
             
             df_data = df.to_dict(orient='records')
+            print(f"📦 Prepared {len(df_data)} rows for storage.")
             # The search tool name always keeps the 'search_' prefix for the backend router
             # Note: sanitization happens inside create_db_function_tool
             read_tool = vapi_service.create_db_function_tool(
@@ -928,20 +932,27 @@ def connect_google_sheets(request):
             if 'id' in read_tool:
                 tool_ids.append(read_tool['id'])
 
+            print(f"✅ Created READ tool with ID: {read_tool['id']}")
+
         # 3. WRITE LOGIC: Specialized Analysis for Data Entry
         if can_write:
             write_prompt = (
-                f"This is a DATA ENTRY tool for the sheet: {db_name}\n"
+                f"This is a MANDATORY DATA ENTRY tool for the sheet: {db_name}\n"
                 f"Columns: {columns}\nSample: {sample_data}\n"
-                "Explain to the Voice AI exactly what it needs to ask the user to fill these columns. "
-                "Include instructions on being brief and capturing specific details."
+                "INSTRUCTIONS FOR VOICE AI:\n"
+                "1. You MUST gather information for EVERY single column mentioned above.\n"
+                "2. Do not call this tool until you have collected all values from the user.\n"
+                "3. If a user is vague, ask follow-up questions for that specific column.\n"
+                "4. Be professional but persistent in completing the data entry."
             )
             write_analysis = structured_llm.invoke(write_prompt)
+
+            print(f"📝 Write Tool Description: {write_analysis.summary}")
             
             # Use the AI to generate a clean, action-oriented function name
             # Sanitize to meet Vapi requirements: /^[a-zA-Z0-9_-]{1,64}$/
             write_func_name = sanitize_function_name(f"log_{db_name.lower().replace(' ', '_')}")
-            write_desc = f"APPEND TOOL: {write_analysis.summary}"
+            write_desc = f"APPEND TOOL (MANDATORY FIELDS): {write_analysis.summary}"
 
             write_payload = {
                 "type": "function",
@@ -951,11 +962,11 @@ def connect_google_sheets(request):
                     "parameters": {
                         "type": "object",
                         "properties": {col: {"type": "string", "description": f"Caller's {col}"} for col in columns},
-                        "required": columns[:2] # Heuristic: Name and Description/Issue usually first
+                        "required": columns # Heuristic: Name and Description/Issue usually first
                     }
                 },
                 "server": {
-                    "url": f"{DEPLOYED_URL}/api/execute-sheet-write",
+                    "url": f"{DEPLOYED_URL}/api/execute-sheet-write/",
                 }
             }
             write_tool = vapi_service.create_generic_tool(write_payload)
@@ -979,16 +990,24 @@ def connect_google_sheets(request):
         print(f"❌ Google Sheets Sync Error: {str(e)}")
         return Response({"error": str(e)}, status=500)
 
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def execute_sheet_write(request):
-    print(f"📥 Received sheet write request: {json.dumps(request.data, indent=2)}")
+    """
+    Handles Vapi tool calls to write data to Google Sheets.
+    Includes robust error handling and database connection persistence.
+    """
+    print(f"📥 Received tool call request")
     
+    # 1. EXTRACT VAPI DATA
     message = request.data.get('message', {})
     tool_calls = message.get('toolCalls', [])
     
     if not tool_calls:
-        print("❌ No tool calls provided")
         return Response({"error": "No tool call provided"}, status=400)
     
     call = tool_calls[0]
@@ -996,125 +1015,80 @@ def execute_sheet_write(request):
     vapi_tool_id = call.get('toolId')
     function_name = call.get('function', {}).get('name', '')
     args = call.get('function', {}).get('arguments', {})
-    
-    # Parse args if it's a string (common with Vapi)
+
+    # Robust JSON parsing for arguments
     if isinstance(args, str):
         try:
             args = json.loads(args)
-            print(f"✅ Parsed JSON args: {args}")
-        except json.JSONDecodeError as e:
-            print(f"⚠️ Failed to parse args as JSON: {e}")
+        except json.JSONDecodeError:
             args = {}
 
-    print(f"🔍 Looking up database - Function: {function_name}, Tool ID: {vapi_tool_id}")
-
-    # 1. DEFENSIVE LOOKUP
-    # First try by Vapi Tool ID (most reliable)
-    db = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
-    
-    if not db:
-        # Try matching by function name (handle sanitized names)
-        # Remove prefixes like log_, write_, search_
-        clean_name = function_name.replace('log_', '').replace('write_', '').replace('search_', '')
-        print(f"🔍 Trying name-based lookup (cleaned): {clean_name}")
-        
-        # Try exact match first
-        db = ConnectedDatabase.objects.filter(name=clean_name).first()
-        
-        # Try case-insensitive contains match
-        if not db:
-            db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
-        
-        # Try matching against sanitized versions of all database names
-        if not db:
-            print(f"🔍 Trying fuzzy match against all databases...")
-            all_dbs = ConnectedDatabase.objects.filter(source_type="googlesheets")
-            for candidate_db in all_dbs:
-                # Sanitize the candidate name and compare
-                candidate_sanitized = sanitize_function_name(candidate_db.name.lower().replace(' ', '_'))
-                function_sanitized = sanitize_function_name(clean_name)
-                if candidate_sanitized == function_sanitized or candidate_sanitized in function_sanitized or function_sanitized in candidate_sanitized:
-                    print(f"✅ Matched via fuzzy sanitization: {candidate_db.name}")
-                    db = candidate_db
-                    break
-
-    if db is None:
-        print(f"❌ Database not found for function: {function_name}")
-        return Response({
-            "results": [{"toolCallId": tool_call_id, "result": "Error: DB not found."}]
-        }, status=200)
-
-    print(f"✅ Found database: {db.name} (ID: {db.id})")
-    details = db.connection_details or {}
-    spreadsheet_id = details.get('spreadsheet_id')
-    
-    if not spreadsheet_id:
-        print(f"❌ No spreadsheet_id found in connection_details: {details}")
-        return Response({
-            "results": [{"toolCallId": tool_call_id, "result": "Error: Spreadsheet ID not found."}]
-        }, status=200)
-
-    print(f"📊 Spreadsheet ID: {spreadsheet_id}")
-    print(f"📋 Columns: {db.columns}")
-    print(f"📝 Args received: {args}")
-
     try:
-        # 2. PREPARE DATA
-        # Create a dictionary for Django and a list for Google Sheets
+        # 2. DATABASE LOOKUP (Optimized)
+        # Try Tool ID first, then fallback to name matching
+        db = ConnectedDatabase.objects.filter(vapi_tool_ids__contains=[vapi_tool_id]).first()
+        
+        if not db:
+            clean_name = function_name.replace('log_', '').replace('write_', '').replace('search_', '')
+            db = ConnectedDatabase.objects.filter(name__icontains=clean_name).first()
+
+        if not db:
+            print(f"❌ DB Not Found: {function_name}")
+            return Response({
+                "results": [{"toolCallId": tool_call_id, "result": "Error: Database configuration missing."}]
+            }, status=200)
+
+        details = db.connection_details or {}
+        spreadsheet_id = details.get('spreadsheet_id')
+
+        # 3. PREPARE DATA (Strict Mapping)
+        # We ensure every column in the DB gets a value, even if empty string
         new_entry_dict = {col: str(args.get(col, "")) for col in db.columns}
         new_row_list = [new_entry_dict[col] for col in db.columns]
-        
-        print(f"📦 Prepared row data: {new_row_list}")
 
-        # 3. GOOGLE SHEETS WRITE (External)
+        # 4. GOOGLE SHEETS AUTH & WRITE
         json_path = settings.SERVICE_ACCOUNT_FILE 
-
-        if not os.path.exists(json_path):
-            # This might happen if the Env Var was missing during startup
-            print("❌ Service account file missing! Checking for Env Var...")
-            sa_content = os.getenv('GOOGLE_SERVICE_ACCOUNT_JSON')
-            if sa_content:
-                with open(json_path, 'w') as f:
-                    f.write(sa_content)
-            else:
-                raise FileNotFoundError(f"Service account credentials not found in Env or File.")
-        
-        print(f"🔑 Using service account: {json_path}")
         scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        
+        # Using a timeout/retry pattern for gspread
         creds = ServiceAccountCredentials.from_json_keyfile_name(json_path, scope)
         client = gspread.authorize(creds)
-        
-        print(f"📄 Opening spreadsheet: {spreadsheet_id}")
         spreadsheet = client.open_by_key(spreadsheet_id)
         sheet = spreadsheet.sheet1
         
-        print(f"✍️ Appending row to sheet: {sheet.title}")
+        # Append to Google Sheets
         sheet.append_row(new_row_list)
-        print(f"✅ Successfully appended row to Google Sheet")
 
-        # 4. DJANGO DATABASE UPDATE (Internal Sync)
-        # We append the new dictionary to the existing 'data' list
-        current_data = list(db.data) if db.data else [] # Cast to list to be safe
+        # 5. INTERNAL SYNC (Supabase)
+        # Wrap in a list cast to prevent JSON serialization errors
+        current_data = list(db.data) if db.data else []
         current_data.append(new_entry_dict)
         db.data = current_data
-        db.save() # This commits the new row to your Django DB
+        db.save()
 
-        print(f"✅ Synced: Appended to GSheet and Django for {db.name}")
+        # 6. FORMAT SUCCESS RESPONSE FOR VOICE AI
+        # Filter out empty values for a cleaner verbal summary
+        summary_parts = [f"{k}: {v}" for k, v in new_entry_dict.items() if v]
+        saved_summary = ", ".join(summary_parts) if summary_parts else "all fields"
 
         return Response({
             "results": [{
                 "toolCallId": tool_call_id, 
-                "result": "I have successfully recorded your entry and updated the system."
+                "result": f"Data recorded successfully. I've logged: {saved_summary}."
             }]
         }, status=200)
 
     except Exception as e:
         import traceback
-        error_trace = traceback.format_exc()
-        print(f"❌ Sync Error: {str(e)}")
-        print(f"❌ Traceback: {error_trace}")
+        print(f"❌ EXECUTION ERROR: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Vapi expects a 200 even if there's a 'result' error to avoid hanging the call
         return Response({
-            "results": [{"toolCallId": tool_call_id, "result": f"Sync Error: {str(e)}"}]
+            "results": [{
+                "toolCallId": tool_call_id, 
+                "result": f"System error during recording: {str(e)}. Please try again."
+            }]
         }, status=200)
 
 

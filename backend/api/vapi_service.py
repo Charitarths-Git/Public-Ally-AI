@@ -243,11 +243,13 @@ class VAPIService:
                 },
                 "voice": {"provider": "vapi", "voiceId": "Neha"},
                 "transcriber": {
-                    "model": "gemini-2.0-flash",
-                    "provider": "google",
-                    "language": "Multilingual"
+                    "model": "nova-3",
+                    "language": "multi",
+                    "provider": "deepgram",
+                    "confidenceThreshold": 0.39
                 },
                 "endCallFunctionEnabled": True,
+                "backgroundDenoisingEnabled": True,
                 # Server configuration for webhook
                 "server": {
                     "url": f"{DEPLOYED_URL}/api/vapi-webhook/"
@@ -594,7 +596,7 @@ def send_whatsapp_notification(phone_number, summary):
     Sends the call summary to the user via WhatsApp using the Twilio Function.
     """
     print(f"📤 Attempting to send WhatsApp to {phone_number}...")
-    
+    summary=summary+"\n\nThis is our after call service. Feel free to chat with us anytime!"
     # Clean the phone number (ensure it has the '+' prefix)
     to_number = phone_number if phone_number.startswith('+') else f"+{phone_number}"
     

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LokMitra AI - eKYC Verification</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #16a34a;
+      --error: #dc2626;
+      --background: #ffffff;
+      --text: #111827;
+      --card-bg: #f3f4f6;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background-color: var(--background);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    header {
+      width: 100%;
+      padding: 1rem;
+      background-color: var(--card-bg);
+      text-align: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+
+    h1 { margin: 0; font-weight: 600; }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 1000px;
+      padding: 0 1rem;
+    }
+
+    .video-wrapper, .id-wrapper {
+      position: relative;
+      width: 480px;
+      height: 360px;
+      background-color: black;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      border: 2px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .video-id-container {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    img { width: 100%; height: 100%; object-fit: cover; }
+
+    .placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #1f2937;
+      color: #9ca3af;
+      font-size: 1rem;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .controls { display: flex; gap: 1rem; }
+
+    button {
+      padding: 0.75rem 2rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    #startBtn { background-color: var(--primary); color: white; }
+    #startBtn:hover { background-color: #1d4ed8; }
+    #startBtn:disabled { background-color: #9ca3af; cursor: not-allowed; }
+
+    .status-box {
+      padding: 1rem;
+      width: 100%;
+      background: var(--card-bg);
+      border-radius: 8px;
+      text-align: center;
+      min-height: 80px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    #statusText { font-size: 1.25rem; margin-bottom: 0.5rem; font-weight: 500; }
+    #resultText { font-size: 1rem; color: #374151; }
+
+    .loader {
+      display: none;
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(0, 0, 0, 0.2);
+      border-radius: 50%;
+      border-top-color: #111827;
+      animation: spin 1s ease-in-out infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<header>
+  <h1>LokMitra AI Authentication</h1>
+</header>
+
+<div class="container">
+  <div class="video-id-container">
+    <div class="video-wrapper">
+      <img src="{{ url_for('video_feed') }}" alt="Camera Stream" />
+    </div>
+    <div class="id-wrapper" id="idContainer">
+      <div class="placeholder">Loading ID Document...</div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn" onclick="startVerification()">Start Verification</button>
+  </div>
+
+  <div class="status-box">
+    <div id="statusText">Ready</div>
+    <div id="resultText">Click 'Start Verification' to begin.</div>
+    <div class="loader" id="loader"></div>
+  </div>
+</div>
+
+<script>
+let pollingInterval;
+
+// Load ID card image on page load
+window.addEventListener('load', function() {
+  loadIdCard();
+});
+
+function loadIdCard() {
+  const idContainer = document.getElementById('idContainer');
+  const img = new Image();
+  
+  img.onload = function() {
+    idContainer.innerHTML = '';
+    img.id = 'idImage';
+    idContainer.appendChild(img);
+    console.log('✅ ID card loaded successfully');
+  };
+  
+  img.onerror = function() {
+    console.error('❌ Failed to load ID card');
+    idContainer.innerHTML = '<div class="placeholder">ID Document not found<br>Please ensure ID is uploaded to Supabase</div>';
+  };
+  
+  // Add timestamp to prevent caching issues
+  img.src = "{{ url_for('fetch_id') }}?t=" + new Date().getTime();
+}
+
+function startVerification() {
+  const btn = document.getElementById("startBtn");
+  const status = document.getElementById("statusText");
+  const result = document.getElementById("resultText");
+  const loader = document.getElementById("loader");
+
+  btn.disabled = true;
+  status.style.color = "#111827";
+  status.innerText = "Initializing...";
+  result.innerText = "";
+
+  fetch("/start_process").then(res => res.json()).then(data => {
+    if (data.status === "started") {
+      status.innerText = "Follow Instructions on Video";
+      result.innerText = "Recording in progress...";
+      pollStatus();
+    } else {
+      status.innerText = "Error";
+      result.innerText = "Could not start process.";
+      btn.disabled = false;
+    }
+  });
+}
+
+function pollStatus() {
+  const status = document.getElementById("statusText");
+  const result = document.getElementById("resultText");
+  const btn = document.getElementById("startBtn");
+  const loader = document.getElementById("loader");
+
+  const steps = ["Look Center", "Look Left", "Look Right"];
+  const stepDuration = 5; // seconds per step
+
+  pollingInterval = setInterval(async () => {
+    try {
+      const res = await fetch("/get_result");
+      const data = await res.json();
+
+      if (data.status === "recording") {
+        const timeLeft = data.time_left || 0;
+        const currentStepIndex = Math.floor((data.recording_duration - timeLeft) / stepDuration);
+        const currentStep = steps[Math.min(currentStepIndex, steps.length - 1)];
+        status.innerText = `Recording...`;
+        result.innerText = `${currentStep} (${timeLeft}s left)`;
+      } else if (data.status === "processing") {
+        status.innerText = "Processing Video...";
+        result.innerText = "Verifying liveness and identity...";
+        loader.style.display = "block";
+      } else if (data.status === "completed") {
+        clearInterval(pollingInterval);
+        loader.style.display = "none";
+        btn.disabled = false;
+
+        if (data.result.verified) {
+          status.style.color = "var(--success)";
+          status.innerText = "Identity Verified ✅";
+          result.innerText = "Verification successful.";
+        } else {
+          status.style.color = "var(--error)";
+          status.innerText = "Verification Failed ❌";
+          result.innerText = `Reason: ${data.result.reason || "No Match"}`;
+        }
+      } else if (data.status === "failed") {
+        clearInterval(pollingInterval);
+        loader.style.display = "none";
+        btn.disabled = false;
+        status.style.color = "var(--error)";
+        status.innerText = "Error Occurred";
+        result.innerText = data.result.error;
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, 1000);
+}
+</script>
+</body>
+</html>

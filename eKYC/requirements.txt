@@ -1,0 +1,10 @@
+flask
+opencv-python
+deepface
+supabase
+python-dotenv
+pyttsx3
+numpy
+tensorflow
+tf-keras
+pygame

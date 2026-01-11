@@ -952,10 +952,10 @@ def connect_google_sheets(request):
                 f"This is a MANDATORY DATA ENTRY tool for the sheet: {db_name}\n"
                 f"Columns: {columns}\nSample: {sample_data}\n"
                 "INSTRUCTIONS FOR VOICE AI:\n"
-                "1. You MUST gather information for EVERY single column mentioned above.\n"
-                "2. Do not call this tool until you have collected all values from the user.\n"
-                "3. If a user is vague, ask follow-up questions for that specific column.\n"
-                "4. Be professional but persistent in completing the data entry."
+                "You MUST gather information for EVERY single column mentioned above.\n"
+                "you strictly MUST collect values for ALL columns before calling this tool.\n"
+                "If a user is vague, ask follow-up questions for that specific column.\n"
+                "Only make one entry per sheet not more than that in one session striclty and that too afer taking all the required details. If some details are left ask for the leftover details and then call the tool when everything is recieved.\n"
             )
             write_analysis = structured_llm.invoke(write_prompt)
 

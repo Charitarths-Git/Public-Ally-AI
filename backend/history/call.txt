@@ -1,24 +1,34 @@
-Call ID: 019badba-df45-7ff9-9065-c4572de57446
-Phone Number: +917559192810
+Call ID: 019baf22-7354-7331-b91c-fe090b9d1170
+Phone Number: +918668944955
 Status: queued
-Ended Reason: customer-ended-call
-Duration: 34.761 seconds
-Cost: $0.0652
-Started At: 2026-01-11T15:44:38.227Z
-Ended At: 2026-01-11T15:45:12.988Z
-Recording URL: https://storage.vapi.ai/019badba-df45-7ff9-9065-c4572de57446-1768146315532-f2c63054-cc49-4bc4-b1cf-3e6665abc20e-mono.wav
-Stereo Recording URL: https://storage.vapi.ai/019badba-df45-7ff9-9065-c4572de57446-1768146315532-8598e008-ae38-4653-9b94-5d609e7f8a41-stereo.wav
+Ended Reason: assistant-forwarded-call
+Duration: 162.587 seconds
+Cost: $0.2393
+Started At: 2026-01-11T22:17:24.320Z
+Ended At: 2026-01-11T22:20:06.907Z
+Recording URL: https://storage.vapi.ai/019baf22-7354-7331-b91c-fe090b9d1170-1768170009453-8ea88c63-e6bd-4650-be04-45f85082fbdb-mono.wav
+Stereo Recording URL: https://storage.vapi.ai/019baf22-7354-7331-b91c-fe090b9d1170-1768170009453-12a85004-23bd-4938-a4c6-ca8a020d96cc-stereo.wav
 
 ================================================================================
 SUMMARY
 ================================================================================
-The AI offered assistance with pension rules or applications. However, the user immediately requested to transfer the call, and the call subsequently ended because the customer hung up.
+The call began with the AI introducing itself as a government schemes expert and the user inquiring about various schemes, specifically the AI Mission scheme. After the AI explained the scheme and collected the user's details (name, phone number, occupation) for potential registration, the user declared an emergency and requested to be connected to a human expert. The AI acknowledged the sensitive nature of the request and transferred the call.
 
 ================================================================================
 TRANSCRIPT
 ================================================================================
-User: Okay.
-AI: Thank you. How can I assist you today regarding pension rules or your application? Please let me know your query.
-User: transfer the call.
+AI: Um, good morning, करण. My name is सहयाकी, and and I'm your universal government schemes expert. Reaching out to discuss how various government initiatives might benefit you.
+User: Hello, Saiki. Can you explain me about various comment scheme you know?
+AI: Hello. I can certainly help you with information about various government schemes. Could you please specify if you are interested in schemes related to a particular area such as health, education, employment, housing, or any other specific category, this will help me provide you with the most relevant details.
+User: Can you help me to explain about AI mission scheme in Hindi?
+AI: हूं. AI mission योजना भारत सरकार की एक प्रमुख पहल है जिसका उद्देश्य कृत्रिम बुद्धिमत्ता, artificial intelligence क्षेत्र में अनुस्त संधान विकास और नवाचार को बढ़ावा देना है. इसका मकसद है कि भाई भारत में AI technique का उपयोग विभिन्न क्षेत्रों जैसे स्वास्थ्य शिक्षा, कृषि, वित्त, और शहरी विकास में किया जाए ताकि देश की विकास गति तेज़ हो सके. क्या आप इस योजना की विशेष पात्रता, लाभ या आवेदन प्रक्रिया के बारे में अधिक जानकारी चाहेंगे?
+User: Can you register me in this AI mission scheme?
+AI: मैं आपकी सहायता कर सकता हूं, लेकिन इसके लिए मैं आपके कुछ विवरण जैसे नाम, mobile number, आयुवादी की जानकारी प्राप्त करनी होगी. क्या आप इन विवरणों को साझा कर सकते हैं? फिर मैं आपके लिए registration प्रक्रिया शुरू कर सकता हूं.
+User: My name is कल्तव्या. My phone number is 8 6 6 8 9 4 4 9 5 5. My occupation is student
+AI: आपका विवरण हमारे record में दर्ज
+AI: हो गया है. यदि आप इस योजना के लिए आगे कोई, uh, या आवेदन करना चाहती हैं तो मैं आपकी सहायता कर सकता हूं. क्या आप और कोई जानकारी या सहायता चाहेंगी?
+User: Hello साएगी, I am in emergency. Please contact with communicate me with the human expert.
+AI: Okay. This is a crucial and sensitive topic to solve by me.
+AI: I will transfer the call to our corresponding expert, who will further help you related to this.
 
 ================================================================================

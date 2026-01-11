@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'motion/react';
-import { Home, List, Database, BookOpen, FileText, HelpCircle, LogOut, Menu, X } from 'lucide-react';
+import { Home, List, Database, BookOpen, FileText, HelpCircle, LogOut, Menu, X, Info } from 'lucide-react';
 import { UserSession } from '@/types';
 import CallNotification from '@/components/ui/CallNotification';
 import API_ENDPOINTS from '@/lib/api-config';
@@ -15,6 +15,7 @@ const navItems = [
   { id: 'knowledge-base', label: 'Knowledge Base', icon: BookOpen, path: '/dashboard/knowledge-base' },
   { id: 'results', label: 'Call History', icon: FileText, path: '/dashboard/results' },
   { id: 'how-to-use', label: 'How to Use', icon: HelpCircle, path: '/dashboard/how-to-use' },
+  { id: 'about', label: 'About', icon: Info, path: '/dashboard/about' },
 ];
 
 interface Notification {
@@ -33,7 +34,7 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userSession, setUserSession] = useState<UserSession | null>(null);
-  
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [lastCallId, setLastCallId] = useState<string | null>(null);
 
@@ -93,12 +94,12 @@ export default function DashboardLayout({
   const bgGradient = isGovernanceTheme
     ? 'linear-gradient(135deg, #FFE5CC 0%, #FFDAB3 20%, #FFE8D6 35%, #C8E6C9 55%, #A5D6A7 75%, #E3F2FD 100%)'
     : 'linear-gradient(135deg, #F5F7FA 0%, #E3F2FD 100%)';
-  
+
   const accentColor = isGovernanceTheme ? '#001f3f' : '#1976D2';
 
   return (
     <div className="min-h-screen flex overflow-x-hidden" style={{ background: bgGradient }}>
-      
+
       {notifications.map(notification => (
         <CallNotification
           key={notification.id}
@@ -130,9 +131,8 @@ export default function DashboardLayout({
               <motion.button
                 key={item.id}
                 onClick={() => router.push(item.path)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${
-                  isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
-                }`}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
+                  }`}
                 style={{ backgroundColor: isActive ? `${accentColor}20` : undefined }}
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
@@ -201,9 +201,8 @@ export default function DashboardLayout({
                         router.push(item.path);
                         setSidebarOpen(false);
                       }}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${
-                        isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
-                      }`}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${isActive ? 'bg-opacity-10 shadow-md' : 'hover:bg-gray-100'
+                        }`}
                       style={{ backgroundColor: isActive ? `${accentColor}20` : undefined }}
                     >
                       <Icon className="w-5 h-5" style={{ color: isActive ? accentColor : '#6B7280' }} />

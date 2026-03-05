@@ -59,7 +59,6 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [isCreatingExpert, setIsCreatingExpert] = useState(false);
   const [isRemovingExpert, setIsRemovingExpert] = useState(false);
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
-  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
@@ -170,24 +169,6 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     return () => clearInterval(interval);
   }, [isCalling]); // Removed sessionInProgress dependency to keep polling active
   // --- END OF NEW BLOCK ---
-
-  // AUTO-CONTINUE SESSION LOGIC
-  useEffect(() => {
-    // If a session is actively running, but no call is currently happening:
-    if (sessionInProgress && !isCalling) {
-      const nextPerson = callingQueue.find(entry => entry.status === 'pending');
-      if (nextPerson) {
-        // Add a 2-second buffer between calls so VAPI has time to fully reset
-        const timer = setTimeout(() => {
-          triggerNextCall();
-        }, 2000);
-        return () => clearTimeout(timer);
-      } else {
-        // The queue is empty/done, session is naturally complete!
-        setSessionInProgress(false);
-      }
-    }
-  }, [isCalling, sessionInProgress, callingQueue]);
 
   const triggerNextCall = async () => {
     // 1. Find the first person who hasn't been called yet
@@ -301,7 +282,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     setIsCalling(false);
   };
 
-
+  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
 
   const [capabilities, setCapabilities] = useState<AICapability[]>([
     { id: 'tickets', label: 'Create/Update Tickets', description: 'Allow AI to create or update tickets in the database', enabled: true },
@@ -828,12 +809,12 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
             <motion.div
               key={entry.id}
               className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${entry.status === 'calling'
-                ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200'
-                : entry.status === 'completed'
-                  ? 'bg-gray-50 border-green-200 opacity-75'
-                  : index === nextCallIndex
-                    ? 'bg-blue-50 border-blue-500 shadow-sm'
-                    : 'bg-gray-50 border-gray-200'
+                  ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200'
+                  : entry.status === 'completed'
+                    ? 'bg-gray-50 border-green-200 opacity-75'
+                    : index === nextCallIndex
+                      ? 'bg-blue-50 border-blue-500 shadow-sm'
+                      : 'bg-gray-50 border-gray-200'
                 }`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -961,8 +942,8 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-base sm:text-lg break-words">{tool.name}</h4>
                     <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase font-semibold ${tool.type === 'base' ? 'bg-blue-100 text-blue-700' :
-                      tool.type === 'database' ? 'bg-purple-100 text-purple-700' :
-                        'bg-orange-100 text-orange-700'
+                        tool.type === 'database' ? 'bg-purple-100 text-purple-700' :
+                          'bg-orange-100 text-orange-700'
                       }`}>
                       {tool.type}
                     </span>
@@ -973,7 +954,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                   onClick={() => toggleTool(tool.id)}
                   disabled={isTogglingTool === tool.id}
                   className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${isTogglingTool === tool.id ? 'opacity-50 cursor-not-allowed' :
-                    tool.enabled ? 'bg-green-500' : 'bg-gray-300'
+                      tool.enabled ? 'bg-green-500' : 'bg-gray-300'
                     }`}
                   whileTap={!sessionInProgress && isTogglingTool !== tool.id ? { scale: 0.95 } : {}}
                   title={`Toggle ${tool.name}`}

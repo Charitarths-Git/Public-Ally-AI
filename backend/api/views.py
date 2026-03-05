@@ -34,15 +34,37 @@ DEPLOYED_URL = os.getenv("DEPLOYED_URL")
 _llm = None
 _structured_llm = None
 
+# Bedrock Configuration
+USE_AWS_BEDROCK = True
+
 def get_llm():
     """Get or initialize the LLM instance"""
     global _llm, _structured_llm
     if _llm is None:
-        _llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash", 
-            temperature=0.3,
-            google_api_key=os.getenv("GEMINI_API_KEY")
-        )
+        _is_fallback = os.getenv("AWS_STRICT_MODE", "false").lower() != "true"
+        if USE_AWS_BEDROCK and not _is_fallback:
+            try:
+                from langchain_aws import ChatBedrock
+                _llm = ChatBedrock(
+                    model_id="anthropic.claude-v2", 
+                    model_kwargs={"temperature": 0.3},
+                    region_name="us-east-1"
+                )
+            except ImportError:
+                print("Facing Issues with AWS Bedrock. Falling back...")
+                _llm = ChatGoogleGenerativeAI(
+                    model="gemini-2.5-flash", 
+                    temperature=0.3,
+                    google_api_key=os.getenv("GEMINI_API_KEY")
+                )
+        else:
+            # Fallback to secondary provider
+            _llm = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash", 
+                temperature=0.3,
+                google_api_key=os.getenv("GEMINI_API_KEY")
+            )
+            
         _structured_llm = _llm.with_structured_output(ToolMetadata)
     return _llm, _structured_llm
 

@@ -83,12 +83,9 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:3000",
     "https://phonematic-streamingly-jayda.ngrok-free.dev",
     "https://modest-reflection-production-893c.up.railway.app",
-    "https://magnificent-emotion-production-e786.up.railway.app",
-    "https://frontend1-production-ddbe.up.railway.app"
+    "https://frontend1-production-ddbe.up.railway.app",
+    "https://main.d2fret8i3g9956.amplifyapp.com"
 ]
-
-if DEPLOYED_URL:
-    CORS_ALLOWED_ORIGINS.append(DEPLOYED_URL)
 
 CORS_ALLOW_CREDENTIALS = True
 

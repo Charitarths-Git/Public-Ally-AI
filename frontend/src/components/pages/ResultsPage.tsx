@@ -58,13 +58,13 @@ export default function ResultsPage({ accentColor }: ResultsPageProps) {
         const data = await response.json();
         console.log('📞 Fetched call history:', data.length, 'calls');
         setCallRecords(data);
-        
+
         // Check for new calls and show notification
         if (data.length > 0) {
           const latestCall = data[0];
           console.log('Latest call ID:', latestCall.call_id);
           console.log('Last known call ID:', lastCallId);
-          
+
           if (latestCall.call_id !== lastCallId) {
             if (lastCallId !== null) {
               // Show notification for new call
@@ -89,29 +89,29 @@ export default function ResultsPage({ accentColor }: ResultsPageProps) {
   };
 
   useEffect(() => {
-  console.log('🚀 ResultsPage mounted, starting initial fetch...');
-  
-  // Initial fetch on mount
-  fetchCallHistory();
-  const pollInterval = 30000;
+    console.log('🚀 ResultsPage mounted, starting initial fetch...');
 
-  // Poll for new calls every 5-10 seconds
-  const interval = setInterval(() => {
-    // Only execute if the user is actually looking at this tab
-    if (document.visibilityState === 'visible' && document.hidden) {
-      console.log('🔄 Tab active: Polling for new calls...');
-      fetchCallHistory();
-    } else {
-      // Logic is paused while tab is in background
-      console.log('💤 Tab backgrounded: Polling paused to save server resources.');
-    }
-  }, pollInterval); // You can increase this to 10000 (10s) for better stability
-  
-  return () => {
-    console.log('🛑 ResultsPage unmounting, clearing interval');
-    clearInterval(interval);
-  };
-}, [lastCallId]);
+    // Initial fetch on mount
+    fetchCallHistory();
+    const pollInterval = 30000;
+
+    // Poll for new calls every 5-10 seconds
+    const interval = setInterval(() => {
+      // Only execute if the user is actually looking at this tab
+      if (document.visibilityState === 'visible' && document.hidden) {
+        console.log('🔄 Tab active: Polling for new calls...');
+        fetchCallHistory();
+      } else {
+        // Logic is paused while tab is in background
+        console.log('💤 Tab backgrounded: Polling paused to save server resources.');
+      }
+    }, pollInterval); // You can increase this to 10000 (10s) for better stability
+
+    return () => {
+      console.log('🛑 ResultsPage unmounting, clearing interval');
+      clearInterval(interval);
+    };
+  }, [lastCallId]);
 
   const removeNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
@@ -161,8 +161,8 @@ ${record.transcript}
     URL.revokeObjectURL(url);
   };
 
-  const filteredRecords = activeTab === 'recent' 
-    ? callRecords.slice(0, 10) 
+  const filteredRecords = activeTab === 'recent'
+    ? callRecords.slice(0, 10)
     : callRecords;
 
   return (
@@ -196,9 +196,8 @@ ${record.transcript}
       >
         <button
           onClick={() => setActiveTab('all')}
-          className={`relative px-6 py-3 rounded-xl transition-all ${
-            activeTab === 'all' ? 'text-white' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`relative px-6 py-3 rounded-xl transition-all ${activeTab === 'all' ? 'text-white' : 'text-gray-600 hover:bg-gray-100'
+            }`}
           style={{
             backgroundColor: activeTab === 'all' ? accentColor : 'transparent'
           }}
@@ -214,9 +213,8 @@ ${record.transcript}
         </button>
         <button
           onClick={() => setActiveTab('recent')}
-          className={`relative px-6 py-3 rounded-xl transition-all ${
-            activeTab === 'recent' ? 'text-white' : 'text-gray-600 hover:bg-gray-100'
-          }`}
+          className={`relative px-6 py-3 rounded-xl transition-all ${activeTab === 'recent' ? 'text-white' : 'text-gray-600 hover:bg-gray-100'
+            }`}
           style={{
             backgroundColor: activeTab === 'recent' ? accentColor : 'transparent'
           }}
@@ -254,7 +252,7 @@ ${record.transcript}
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start gap-3 flex-1">
-                  <div 
+                  <div
                     className="p-3 rounded-lg"
                     style={{ backgroundColor: `${accentColor}20` }}
                   >
@@ -344,8 +342,8 @@ ${record.transcript}
                   >
                     <div className={expandedTranscripts.has(record.call_id) ? '' : 'max-h-32 overflow-hidden'}>
                       <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
-                        {expandedTranscripts.has(record.call_id) 
-                          ? record.transcript 
+                        {expandedTranscripts.has(record.call_id)
+                          ? record.transcript
                           : `${record.transcript.slice(0, 300)}${record.transcript.length > 300 ? '...' : ''}`
                         }
                       </pre>

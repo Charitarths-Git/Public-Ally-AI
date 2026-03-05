@@ -59,6 +59,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const [isCreatingExpert, setIsCreatingExpert] = useState(false);
   const [isRemovingExpert, setIsRemovingExpert] = useState(false);
   const [showAddNumberModal, setShowAddNumberModal] = useState(false);
+  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showDatabaseModal, setShowDatabaseModal] = useState(false);
   const [isCalling, setIsCalling] = useState(false);
@@ -88,15 +89,15 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
     };
 
     const fetchCallingQueue = async () => {
-    try {
+      try {
         const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
         // Take only the first 5 entries for the Homepage preview
-        const limitedQueue = response.data.slice(0, 5); 
-        setCallingQueue(limitedQueue); 
-    } catch (error) {
+        const limitedQueue = response.data.slice(0, 5);
+        setCallingQueue(limitedQueue);
+      } catch (error) {
         console.error('Error fetching queue:', error);
-    }
-  };
+      }
+    };
 
     const fetchHumanExperts = async () => {
       try {
@@ -125,7 +126,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         setIsLoadingTools(false);
       }
     };
-    
+
     fetchAgentConfiguration();
     fetchHumanExperts();
     fetchAvailableTools();
@@ -134,41 +135,59 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   // --- ADD THIS STARTING AT LINE 115 ---
   useEffect(() => {
-  const pollInterval = 5000; // Increased to 5s to reduce server load
+    const pollInterval = 5000; // Increased to 5s to reduce server load
 
-  const interval = setInterval(async () => {
-    // ONLY call the API if:
-    // 1. The browser tab is active/visible
-    // 2. The document is not hidden
-    if (document.visibilityState === 'visible' && !document.hidden) {
-      try {
-        const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
-        // Limit to latest 5 for the Homepage as requested earlier
-        const updatedData = response.data.slice(0, 5); 
-        
-        setCallingQueue(updatedData);
+    const interval = setInterval(async () => {
+      // ONLY call the API if:
+      // 1. The browser tab is active/visible
+      // 2. The document is not hidden
+      if (document.visibilityState === 'visible' && !document.hidden) {
+        try {
+          const response = await axios.get(API_ENDPOINTS.CALLING_QUEUE);
+          // Limit to latest 5 for the Homepage as requested earlier
+          const updatedData = response.data.slice(0, 5);
 
-        const anyoneCalling = updatedData.some((entry: any) => entry.status === 'calling');
+          setCallingQueue(updatedData);
 
-        if (!anyoneCalling && isCalling) {
-          setIsCalling(false);
+          const anyoneCalling = updatedData.some((entry: any) => entry.status === 'calling');
+
+          if (!anyoneCalling && isCalling) {
+            setIsCalling(false);
+          }
+
+          const anyPending = updatedData.some((entry: any) => entry.status === 'pending');
+          if (!anyPending && !anyoneCalling) {
+            setSessionInProgress(false);
+          }
+        } catch (error) {
+          console.error("Polling sync failed:", error);
         }
-        
-        const anyPending = updatedData.some((entry: any) => entry.status === 'pending');
-        if (!anyPending && !anyoneCalling) {
-          setSessionInProgress(false);
-        }
-      } catch (error) {
-        console.error("Polling sync failed:", error);
+      } else {
+        console.log("Polling paused: Tab is inactive.");
       }
-    } else {
-      console.log("Polling paused: Tab is inactive.");
-    }
-  }, pollInterval);
+    }, pollInterval);
 
-  return () => clearInterval(interval);
-}, [isCalling]); // Removed sessionInProgress dependency to keep polling active
+    return () => clearInterval(interval);
+  }, [isCalling]); // Removed sessionInProgress dependency to keep polling active
   // --- END OF NEW BLOCK ---
+
+  // AUTO-CONTINUE SESSION LOGIC
+  useEffect(() => {
+    // If a session is actively running, but no call is currently happening:
+    if (sessionInProgress && !isCalling) {
+      const nextPerson = callingQueue.find(entry => entry.status === 'pending');
+      if (nextPerson) {
+        // Add a 2-second buffer between calls so VAPI has time to fully reset
+        const timer = setTimeout(() => {
+          triggerNextCall();
+        }, 2000);
+        return () => clearTimeout(timer);
+      } else {
+        // The queue is empty/done, session is naturally complete!
+        setSessionInProgress(false);
+      }
+    }
+  }, [isCalling, sessionInProgress, callingQueue]);
 
   const triggerNextCall = async () => {
     // 1. Find the first person who hasn't been called yet
@@ -191,7 +210,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       });
 
       // 3. Update local UI state immediately for responsiveness
-      setCallingQueue(prev => prev.map(entry => 
+      setCallingQueue(prev => prev.map(entry =>
         entry.id === nextPerson.id ? { ...entry, status: 'calling' } : entry
       ));
 
@@ -209,7 +228,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
     } catch (error: any) {
       console.error("VAPI/Database Error:", error.response?.data || error.message);
-      
+
       // 5. ERROR RECOVERY: If it fails, set the status back to 'pending' in the DB
       try {
         await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(nextPerson.id), {
@@ -220,13 +239,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       }
 
       // Revert local UI state
-      setCallingQueue(prev => prev.map(entry => 
+      setCallingQueue(prev => prev.map(entry =>
         entry.id === nextPerson.id ? { ...entry, status: 'pending' } : entry
       ));
-      
+
       setSessionInProgress(false);
       alert("Failed to start call: " + (error.response?.data?.error || "Server error"));
-      
+
     } finally {
       setIsCalling(false);
     }
@@ -234,7 +253,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const startInboundAgent = async () => {
     setIsStartingInbound(true);
-    
+
     try {
       const response = await axios.post(API_ENDPOINTS.START_INBOUND_AGENT, {
         file_ids: activeFileIds
@@ -256,7 +275,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   const stopInboundAgent = async () => {
     try {
       const response = await axios.post(API_ENDPOINTS.STOP_CALLING, {});
-      
+
       if (response.data.success) {
         setInboundAgentActive(false);
         alert('Inbound agent stopped successfully.');
@@ -268,21 +287,21 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   };
 
   const endSession = async () => {
-  // Find all currently 'calling' entries
-  const callingEntries = callingQueue.filter(e => e.status === 'calling');
-  
-  // Update them in the DB
-  for (const entry of callingEntries) {
-    await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(entry.id), {
-      status: 'completed'
-    });
-  }
-  
-  setSessionInProgress(false);
-  setIsCalling(false);
-};
+    // Find all currently 'calling' entries
+    const callingEntries = callingQueue.filter(e => e.status === 'calling');
 
-  const [callingQueue, setCallingQueue] = useState<QueueEntry[]>([]);
+    // Update them in the DB
+    for (const entry of callingEntries) {
+      await axios.patch(API_ENDPOINTS.UPDATE_QUEUE_STATUS(entry.id), {
+        status: 'completed'
+      });
+    }
+
+    setSessionInProgress(false);
+    setIsCalling(false);
+  };
+
+
 
   const [capabilities, setCapabilities] = useState<AICapability[]>([
     { id: 'tickets', label: 'Create/Update Tickets', description: 'Allow AI to create or update tickets in the database', enabled: true },
@@ -295,13 +314,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const handleSaveName = async () => {
     if (!tempName.trim()) return;
-    
+
     setIsSavingConfig(true);
     try {
       const response = await axios.put(API_ENDPOINTS.AGENT_CONFIGURATION_UPDATE, {
         name: tempName.trim()
       });
-      
+
       if (response.data.success) {
         setAiName(response.data.name);
         setIsEditingName(false);
@@ -317,13 +336,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const handleSaveDescription = async () => {
     if (!tempDescription.trim()) return;
-    
+
     setIsSavingConfig(true);
     try {
       const response = await axios.put(API_ENDPOINTS.AGENT_CONFIGURATION_UPDATE, {
         description: tempDescription.trim()
       });
-      
+
       if (response.data.success) {
         setAiDescription(response.data.description);
         setIsEditingDescription(false);
@@ -353,13 +372,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const handleAddHumanExpert = async (data: { phoneNumber: string; expertField: string }) => {
     setIsCreatingExpert(true);
-    
+
     try {
       const response = await axios.post(API_ENDPOINTS.CREATE_HUMAN_EXPERT, {
         phone_number: data.phoneNumber,
         expert_field: data.expertField
       });
-      
+
       if (response.data.success) {
         setHumanExpert({
           id: response.data.id,
@@ -380,12 +399,12 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
 
   const handleRemoveHumanExpert = async () => {
     if (!humanExpert) return;
-    
+
     setIsRemovingExpert(true);
-    
+
     try {
       const response = await axios.delete(API_ENDPOINTS.DELETE_HUMAN_EXPERT(humanExpert.id));
-      
+
       if (response.data.success) {
         setHumanExpert(null);
         console.log('Human expert removed:', response.data.message);
@@ -399,28 +418,28 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
   };
 
   const handleAddNumber = (newEntryFromDB: QueueEntry) => {
-  // 1. Add the new entry to the top of the list
-  // 2. Immediately slice to 5 so the UI doesn't expand and then shrink
-  setCallingQueue(prev => {
-    const updatedList = [newEntryFromDB, ...prev];
-    return updatedList.slice(0, 5);
-  });
-};
+    // 1. Add the new entry to the top of the list
+    // 2. Immediately slice to 5 so the UI doesn't expand and then shrink
+    setCallingQueue(prev => {
+      const updatedList = [newEntryFromDB, ...prev];
+      return updatedList.slice(0, 5);
+    });
+  };
   const toggleTool = async (toolId: string) => {
     if (sessionInProgress) return;
-    
+
     const tool = availableTools.find(t => t.id === toolId);
     if (!tool) return;
-    
+
     const newEnabled = !tool.enabled;
     setIsTogglingTool(toolId);
-    
+
     try {
       const response = await axios.put(API_ENDPOINTS.TOOL_STATUS_UPDATE, {
         tool_id: toolId,
         enabled: newEnabled
       });
-      
+
       if (response.data.success) {
         setAvailableTools(prev => prev.map(t =>
           t.id === toolId ? { ...t, enabled: newEnabled } : t
@@ -483,12 +502,12 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           {/* Outbound Calling Button */}
           <motion.button
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
-            style={{ 
-              backgroundColor: sessionInProgress 
-                ? '#dc2626' 
-                : (isCalling || nextCallIndex === -1) 
-                ? '#9ca3af' 
-                : accentColor,
+            style={{
+              backgroundColor: sessionInProgress
+                ? '#dc2626'
+                : (isCalling || nextCallIndex === -1)
+                  ? '#9ca3af'
+                  : accentColor,
               cursor: (!sessionInProgress && (isCalling || nextCallIndex === -1)) ? 'not-allowed' : 'pointer'
             }}
             whileHover={sessionInProgress || (!isCalling && nextCallIndex !== -1) ? { scale: 1.05 } : {}}
@@ -518,12 +537,12 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           {/* Inbound Agent Button */}
           <motion.button
             className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 sm:px-6 py-2 sm:py-3 rounded-lg text-white shadow-lg text-sm sm:text-base transition-colors"
-            style={{ 
-              backgroundColor: inboundAgentActive 
-                ? '#dc2626' 
+            style={{
+              backgroundColor: inboundAgentActive
+                ? '#dc2626'
                 : isStartingInbound
-                ? '#9ca3af'
-                : secondaryColor || '#10b981',
+                  ? '#9ca3af'
+                  : secondaryColor || '#10b981',
               cursor: isStartingInbound ? 'not-allowed' : 'pointer'
             }}
             whileHover={!isStartingInbound ? { scale: 1.05 } : {}}
@@ -715,7 +734,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
               </div>
             </div>
           </label>
-          
+
           {humanExpert ? (
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border-2 border-gray-200">
               <div className="flex items-start justify-between gap-3">
@@ -792,9 +811,8 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           <motion.button
             onClick={() => setShowAddNumberModal(true)}
             disabled={sessionInProgress}
-            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg text-sm sm:text-base ${
-              sessionInProgress ? 'opacity-50 cursor-not-allowed' : ''
-            }`}
+            className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white shadow-lg text-sm sm:text-base ${sessionInProgress ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             style={{ backgroundColor: accentColor }}
             whileHover={!sessionInProgress ? { scale: 1.05 } : {}}
             whileTap={!sessionInProgress ? { scale: 0.95 } : {}}
@@ -809,15 +827,14 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
           {callingQueue.map((entry, index) => (
             <motion.div
               key={entry.id}
-              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${
-                entry.status === 'calling'
-                  ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200'
-                  : entry.status === 'completed'
+              className={`p-3 sm:p-4 rounded-lg border-2 transition-all ${entry.status === 'calling'
+                ? 'bg-orange-50 border-orange-500 shadow-md ring-1 ring-orange-200'
+                : entry.status === 'completed'
                   ? 'bg-gray-50 border-green-200 opacity-75'
                   : index === nextCallIndex
-                  ? 'bg-blue-50 border-blue-500 shadow-sm'
-                  : 'bg-gray-50 border-gray-200'
-              }`}
+                    ? 'bg-blue-50 border-blue-500 shadow-sm'
+                    : 'bg-gray-50 border-gray-200'
+                }`}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.05 }}
@@ -826,13 +843,13 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                 <div className="flex-1 min-w-0 pr-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <h4 className="text-base sm:text-lg font-medium break-words">{entry.name}</h4>
-                    
+
                     {entry.status === 'calling' && (
                       <span className="flex items-center gap-1 px-2 py-1 bg-orange-500 text-white text-[10px] sm:text-xs rounded-full uppercase tracking-wider animate-pulse font-bold">
                         <Phone className="w-3 h-3" /> Calling...
                       </span>
                     )}
-                    
+
                     {entry.status === 'completed' && (
                       <span className="px-2 py-1 bg-green-500 text-white text-[10px] sm:text-xs rounded-full uppercase tracking-wider font-bold">
                         Completed
@@ -845,7 +862,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                       </span>
                     )}
                   </div>
-                  
+
                   <p className="text-sm sm:text-base text-gray-600 break-all">{entry.phone}</p>
                   {entry.description && (
                     <p className="text-xs sm:text-sm text-gray-500 mt-1 italic break-words">{entry.description}</p>
@@ -855,7 +872,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
               </div>
             </motion.div>
           ))}
-          
+
           {callingQueue.length === 0 && (
             <div className="text-center py-8 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
               Queue is empty. Add a number to get started.
@@ -925,7 +942,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       >
         <h3 className="text-lg sm:text-xl mb-4" style={{ color: accentColor }}>AI Tools & Capabilities</h3>
         <p className="text-xs sm:text-sm text-gray-500 mb-4">Toggle tools on/off to control what the AI agent can access during calls.</p>
-        
+
         {isLoadingTools ? (
           <div className="flex items-center justify-center py-8">
             <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
@@ -938,17 +955,15 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
         ) : (
           <div className="space-y-4">
             {availableTools.map((tool) => (
-              <div key={tool.id} className={`flex sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-lg border-2 ${
-                tool.enabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-              }`}>
+              <div key={tool.id} className={`flex sm:flex-row items-start sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-lg border-2 ${tool.enabled ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                }`}>
                 <div className="flex-1 w-full sm:w-auto">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="text-base sm:text-lg break-words">{tool.name}</h4>
-                    <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase font-semibold ${
-                      tool.type === 'base' ? 'bg-blue-100 text-blue-700' :
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase font-semibold ${tool.type === 'base' ? 'bg-blue-100 text-blue-700' :
                       tool.type === 'database' ? 'bg-purple-100 text-purple-700' :
-                      'bg-orange-100 text-orange-700'
-                    }`}>
+                        'bg-orange-100 text-orange-700'
+                      }`}>
                       {tool.type}
                     </span>
                   </div>
@@ -957,10 +972,9 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
                 <motion.button
                   onClick={() => toggleTool(tool.id)}
                   disabled={isTogglingTool === tool.id}
-                  className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${
-                    isTogglingTool === tool.id ? 'opacity-50 cursor-not-allowed' :
+                  className={`relative w-14 h-7 rounded-full transition-colors flex-shrink-0 ${isTogglingTool === tool.id ? 'opacity-50 cursor-not-allowed' :
                     tool.enabled ? 'bg-green-500' : 'bg-gray-300'
-                  }`}
+                    }`}
                   whileTap={!sessionInProgress && isTogglingTool !== tool.id ? { scale: 0.95 } : {}}
                   title={`Toggle ${tool.name}`}
                 >

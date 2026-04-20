@@ -26,7 +26,7 @@
   <a href="https://youtu.be/OB-zzxz6e8Y?si=DVnbjeScFWHRnNTQ"><b>Video Demo</b></a> • 
   <a href="https://youtube.com/playlist?list=PLsLuXr7FW3LwKIL9K6SJDIRh2qISQKnsq&si=p_Dra1UWf91P_iyu"><b>Extra Features Playlist</b></a> • 
   <a href="https://drive.google.com/file/d/1ZVUwnB5UE8Nv0b406zvQyzalklAOD9Y8/view?usp=drivesdk"><b>Documentation</b></a> • 
-  <a href="https://modest-reflection-production-893c.up.railway.app/"><b>Live Website</b></a> •
+  <a href="https://main.d2fret8i3g9956.amplifyapp.com/"><b>Live Website</b></a> •
   <a href="https://drive.google.com/file/d/1oTjmFBBuKeb98eHA6RqLybZRMYRj4Cie/view?usp=sharing"><b>Installation Guide</b></a>
 </p>
 

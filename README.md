@@ -22,7 +22,6 @@
 <h3>🚀 Project Links</h3>
 <p align="center">
   <a href="https://github.com/Charitarths-Git/Public-Ally-AI"><b>GitHub Repository</b></a> •
-  <a href="https://drive.google.com/file/d/1ZVUwnB5UE8Nv0b406zvQyzalklAOD9Y8/view?usp=drivesdk"><b>Documentation</b></a> •
   <a href="https://drive.google.com/file/d/1oTjmFBBuKeb98eHA6RqLybZRMYRj4Cie/view?usp=sharing"><b>Installation Guide</b></a>
 </p>
 

@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LokMitra AI - Responsive AI Dashboard",
-  description: "AI-powered dashboard for government and corporate entities",
+  title: "Public-Ally-AI - AI Voice Partner Dashboard",
+  description: "AI-powered voice assistant platform for government and citizen services",
 };
 
 export default function RootLayout({

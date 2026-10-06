@@ -367,10 +367,10 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                         <div>
                             <span className="text-sm font-medium uppercase tracking-wider" style={{ color: accentColor }}>Our Approach</span>
                             <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-gray-900">
-                                Our Solution: Lok-Mitra AI
+                                Our Solution: Public-Ally-AI
                             </h2>
                             <p className="text-lg text-gray-500 leading-relaxed mb-8">
-                                Lok-Mitra AI serves as a unified voice agent that handles both inbound and outbound
+                                Public-Ally-AI serves as a unified voice agent that handles both inbound and outbound
                                 calls across multiple sectors. Whether a citizen needs information about healthcare
                                 schemes, wants to file a municipal complaint, or requires assistance with welfare
                                 programs, our AI-powered system provides instant, accurate support.
@@ -439,7 +439,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                     <div className="max-w-3xl mx-auto text-center mb-16">
                         <span className="text-sm font-medium uppercase tracking-wider" style={{ color: accentColor }}>Capabilities</span>
                         <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-6 text-gray-900">
-                            What Makes Lok-Mitra Different
+                            What Makes Public-Ally-AI Different
                         </h2>
                         <p className="text-lg text-gray-500 leading-relaxed">
                             Built specifically for government-scale citizen services, with features that ensure
@@ -467,7 +467,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                                 <span className="text-blue-600">On The Fly</span>
                             </h2>
                             <p className="text-lg text-gray-600 mb-12 leading-relaxed">
-                                Traditional systems require weeks of coding. LokMitra-AI builds fully functional voice agents in seconds based on your description and data.
+                                Traditional systems require weeks of coding. Public-Ally-AI builds fully functional voice agents in seconds based on your description and data.
                             </p>
 
                             <div className="space-y-2">
@@ -924,7 +924,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                                     <h5 className="text-2xl font-bold text-white mb-3">The Ultimate Vision</h5>
                                     <p className="text-gray-300 text-lg leading-relaxed max-w-3xl mx-auto">
                                         By 2028, every Indian citizen—regardless of literacy, language, or location—will have instant access to government services through a simple phone call.
-                                        Lok-Mitra AI will become the <span className="text-green-400 font-semibold">primary interface</span> between citizens and the state,
+                                        Public-Ally-AI will become the <span className="text-green-400 font-semibold">primary interface</span> between citizens and the state,
                                         democratizing access to information and services at an unprecedented scale.
                                     </p>
                                 </div>
@@ -945,7 +945,7 @@ export default function AboutPage({ userSession, accentColor }: AboutPageProps) 
                             >
                                 <Phone className="w-5 h-5" />
                             </div>
-                            <span className="text-xl font-semibold text-gray-900">Lok-Mitra AI</span>
+                            <span className="text-xl font-semibold text-gray-900">Public-Ally-AI</span>
                         </div>
                         <p className="text-sm text-gray-500">
                             Empowering citizens through voice-first governance

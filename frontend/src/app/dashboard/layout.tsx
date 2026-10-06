@@ -118,7 +118,7 @@ export default function DashboardLayout({
         transition={{ duration: 0.4, ease: 'easeOut' }}
       >
         <div className="p-6 border-b-2 flex-shrink-0" style={{ borderColor: accentColor }}>
-          <h2 className="text-2xl" style={{ color: accentColor }}>LokMitra-AI</h2>
+          <h2 className="text-2xl" style={{ color: accentColor }}>Public-Ally-AI</h2>
           <p className="text-sm text-gray-600 mt-1">AI Voice Partner</p>
         </div>
 
@@ -181,7 +181,7 @@ export default function DashboardLayout({
             >
               <div className="p-6 border-b-2 flex items-center justify-between" style={{ borderColor: accentColor }}>
                 <div>
-                  <h2 className="text-2xl" style={{ color: accentColor }}>LokMitra-AI</h2>
+                  <h2 className="text-2xl" style={{ color: accentColor }}>Public-Ally-AI</h2>
                   <p className="text-sm text-gray-600 mt-1">AI Voice Partner</p>
                 </div>
                 <button onClick={() => setSidebarOpen(false)}>
@@ -232,7 +232,7 @@ export default function DashboardLayout({
           <button onClick={() => setSidebarOpen(true)}>
             <Menu className="w-6 h-6" style={{ color: accentColor }} />
           </button>
-          <h2 className="text-xl" style={{ color: accentColor }}>LokMitra-AI</h2>
+          <h2 className="text-xl" style={{ color: accentColor }}>Public-Ally-AI</h2>
           <div className="w-6" />
         </div>
 

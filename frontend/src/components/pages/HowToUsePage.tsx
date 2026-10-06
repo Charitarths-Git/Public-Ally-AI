@@ -23,7 +23,7 @@ const sections = [
     id: 'overview',
     title: 'Platform Overview',
     icon: Home,
-    content: 'LokMitra-AI is an AI-powered voice partner designed for public outreach in Delhi. It serves as the first point of contact between institutions (government bodies, political parties, companies, and organizations) and citizens, capable of handling both inbound and outbound calls autonomously.',
+    content: 'Public-Ally-AI is an AI-powered voice partner designed for public outreach in Delhi. It serves as the first point of contact between institutions (government bodies, political parties, companies, and organizations) and citizens, capable of handling both inbound and outbound calls autonomously.',
     features: [
       'Autonomous voice calling capabilities',
       'Context-aware conversations with citizens',
@@ -36,7 +36,7 @@ const sections = [
     id: 'getting-started',
     title: 'Getting Started',
     icon: Zap,
-    content: 'To begin using LokMitra-AI, select your organization type on the login page. Each type has a tailored theme and configuration options.',
+    content: 'To begin using Public-Ally-AI, select your organization type on the login page. Each type has a tailored theme and configuration options.',
     features: [
       'Select your category: Government Body, Political Party, Company, or Organization',
       'Choose or enter your specific department/body name',
@@ -50,7 +50,7 @@ const sections = [
     icon: Settings,
     content: 'The Home page is your central hub for configuring the AI agent and managing core settings.',
     features: [
-      'Customize AI Agent Name (default: "LokMitra")',
+      'Customize AI Agent Name (default: "Public-Ally")',
       'Set Human-in-the-Loop escalation phone number',
       'View the official outbound calling number',
       'Manage the calling queue with priority ordering',
@@ -154,7 +154,7 @@ const sections = [
     id: 'best-practices',
     title: 'Best Practices',
     icon: CheckCircle,
-    content: 'Follow these recommendations to get the most out of LokMitra-AI.',
+    content: 'Follow these recommendations to get the most out of Public-Ally-AI.',
     features: [
       'Keep knowledge base documents up-to-date with latest policies',
       'Review AI call summaries regularly to identify improvement areas',
@@ -174,7 +174,7 @@ export default function HowToUsePage({ accentColor }: HowToUsePageProps) {
         animate={{ opacity: 1, y: 0 }}
         className="mb-6"
       >
-        <h1 className="text-3xl mb-2" style={{ color: accentColor }}>How to Use LokMitra-AI</h1>
+        <h1 className="text-3xl mb-2" style={{ color: accentColor }}>How to Use Public-Ally-AI</h1>
         <p className="text-gray-600">Complete guide to using the platform effectively</p>
       </motion.div>
 
@@ -236,7 +236,7 @@ export default function HowToUsePage({ accentColor }: HowToUsePageProps) {
       >
         <h3 className="text-lg mb-2" style={{ color: accentColor }}>Need Help?</h3>
         <p className="text-gray-700">
-          LokMitra-AI is designed to be intuitive and user-friendly. If you have questions 
+          Public-Ally-AI is designed to be intuitive and user-friendly. If you have questions 
           or need assistance, hover over any icon or button in the dashboard for contextual 
           tooltips and explanations. The platform is built with governance-grade reliability 
           and transparency in mind, ensuring you maintain full control and visibility over 

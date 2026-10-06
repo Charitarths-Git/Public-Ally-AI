@@ -133,7 +133,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             currentTheme === 'corporate' ? 'text-blue-900' : 
             'text-white'
           }`}>
-            LokMitra-AI
+            Public-Ally-AI
           </h1>
           <p className={`text-xl transition-colors duration-500 ${
             currentTheme === 'governance' ? 'text-gray-800' : 

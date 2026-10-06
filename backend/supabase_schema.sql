@@ -1,5 +1,5 @@
 -- ============================================
--- LokMitra-AI Supabase Database Schema
+-- Public-Ally-AI Supabase Database Schema
 -- ============================================
 -- Instructions:
 -- 1. Go to your Supabase Dashboard

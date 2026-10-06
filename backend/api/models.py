@@ -107,9 +107,9 @@ class AgentConfiguration(models.Model):
     Also stores tool enablement settings.
     """
     
-    name = models.CharField(max_length=255, default='LokMitra')
+    name = models.CharField(max_length=255, default='Public-Ally')
     description = models.TextField(
-        default='LokMitra is an AI voice agent serving the public to help people through voice interactions and knowledge access.'
+        default='Public-Ally is an AI voice agent serving the public to help people through voice interactions and knowledge access.'
     )
     # Tool settings: stores which tools/capabilities are enabled
     # Format: {"tool_id": {"enabled": true, "name": "Tool Name", "description": "..."}}

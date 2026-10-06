@@ -47,7 +47,7 @@ interface HumanExpertData {
 }
 
 export default function HomePage({ userSession, accentColor, secondaryColor }: HomePageProps) {
-  const [aiName, setAiName] = useState('LokMitra');
+  const [aiName, setAiName] = useState('Public-Ally');
   const [aiDescription, setAiDescription] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingDescription, setIsEditingDescription] = useState(false);
@@ -493,7 +493,7 @@ export default function HomePage({ userSession, accentColor, secondaryColor }: H
       >
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl sm:text-3xl lg:text-4xl mb-2" style={{ color: accentColor }}>
-            LokMitra-AI
+            Public-Ally-AI
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
             AI Voice Partner for Public Outreach in Delhi

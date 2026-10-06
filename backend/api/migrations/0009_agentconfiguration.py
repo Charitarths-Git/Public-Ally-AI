@@ -14,8 +14,8 @@ class Migration(migrations.Migration):
             name='AgentConfiguration',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(default='LokMitra', max_length=255)),
-                ('description', models.TextField(default='LokMitra is an AI voice agent serving the public to help people through voice interactions and knowledge access.')),
+                ('name', models.CharField(default='Public-Ally', max_length=255)),
+                ('description', models.TextField(default='Public-Ally is an AI voice agent serving the public to help people through voice interactions and knowledge access.')),
                 ('tool_settings', models.JSONField(blank=True, default=dict)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
             ],

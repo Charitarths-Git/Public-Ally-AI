@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=LokMitra%20AI&fontSize=80&fontAlignY=35&animation=twinkling&fontColor=fff" />
+<img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=200&section=header&text=Public-Ally%20AI&fontSize=80&fontAlignY=35&animation=twinkling&fontColor=fff" />
 
 <div style="background-color: #060b14; margin-top: -30px; padding: 40px 0;">
   <a href="https://git.io/typing-svg">
@@ -19,14 +19,10 @@
 </p>
 
 <hr />
-<!-- Social Links -->
-<!-- Social Links -->
 <h3>🚀 Project Links</h3>
 <p align="center">
-  <a href="https://youtu.be/OB-zzxz6e8Y?si=DVnbjeScFWHRnNTQ"><b>Video Demo</b></a> • 
-  <a href="https://youtube.com/playlist?list=PLsLuXr7FW3LwKIL9K6SJDIRh2qISQKnsq&si=p_Dra1UWf91P_iyu"><b>Extra Features Playlist</b></a> • 
-  <a href="https://drive.google.com/file/d/1ZVUwnB5UE8Nv0b406zvQyzalklAOD9Y8/view?usp=drivesdk"><b>Documentation</b></a> • 
-  <a href="https://main.d2fret8i3g9956.amplifyapp.com/"><b>Live Website</b></a> •
+  <a href="https://github.com/Charitarths-Git/Public-Ally-AI"><b>GitHub Repository</b></a> •
+  <a href="https://drive.google.com/file/d/1ZVUwnB5UE8Nv0b406zvQyzalklAOD9Y8/view?usp=drivesdk"><b>Documentation</b></a> •
   <a href="https://drive.google.com/file/d/1oTjmFBBuKeb98eHA6RqLybZRMYRj4Cie/view?usp=sharing"><b>Installation Guide</b></a>
 </p>
 
@@ -37,7 +33,7 @@
 
 ## 🌟 Overview
 
-**LokMitra AI** is a revolutionary AI-powered voice assistant platform designed to bridge the gap between citizens and government services.  
+**Public-Ally-AI** is a revolutionary AI-powered voice assistant platform designed to bridge the gap between citizens and government services.  
 It enables seamless voice interactions, providing instant access to government schemes, databases, and human experts through natural language conversations.
 
 <div align="center">
@@ -51,6 +47,17 @@ It enables seamless voice interactions, providing instant access to government s
 <div align="center">
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 </div>
+
+## 🎯 Problem Statement
+
+Millions of Indian citizens face significant barriers when trying to access government services:
+
+- **Low Digital Literacy** — Many citizens lack the skills to navigate digital platforms or smartphone apps.
+- **Language Barriers** — Government services often don't support regional languages, excluding millions.
+- **Overloaded Helplines** — Traditional call centers can't handle the volume of citizen queries efficiently.
+- **Fragmented Systems** — Citizens must navigate multiple disconnected systems to access different services.
+
+Public-Ally-AI addresses these challenges by providing a unified, voice-first AI platform accessible to all citizens, regardless of literacy level, language, or device.
 
 ## 🎯 Features
 
@@ -118,7 +125,7 @@ It enables seamless voice interactions, providing instant access to government s
 ## 🏗️ Architecture
 <div align="center">
 
-<img src="Architecture.png" alt="LokMitra AI Architecture" width="90%"/>
+<img src="Architecture.png" alt="Public-Ally-AI Architecture" width="90%"/>
 
 </div>
 
@@ -160,6 +167,7 @@ It enables seamless voice interactions, providing instant access to government s
 
 ### DevOps
 - **Containerization**: Docker + Docker Compose
+- **Cloud**: AWS Lambda (serverless functions)
 - **Version Control**: Git
 - **Package Management**: npm (frontend), pip (backend)
 
@@ -170,7 +178,7 @@ It enables seamless voice interactions, providing instant access to government s
 ## 📊 Project Structure
 
 ```
-LokMitra-AI/
+Public-Ally-AI/
 ├── 📁 backend/                    # Django Backend
 │   ├── 📁 api/                    # Main API Application
 │   │   ├── 📄 models.py          # Database Models
@@ -179,15 +187,16 @@ LokMitra-AI/
 │   │   ├── 📄 serializers.py     # DRF Serializers
 │   │   ├── 📄 utils.py           # Utility Functions
 │   │   └── 📄 structured_output.py # LLM Output Schemas
-│   ├── 📁 backend/                # Django Settings
+│   ├── 📁 lokmitra_backend/       # Django Settings Package
 │   │   ├── 📄 settings.py        # Configuration
 │   │   ├── 📄 urls.py            # URL Routing
 │   │   └── 📄 wsgi.py            # WSGI Config
+│   ├── 📁 aws_lambda/             # AWS Lambda Functions
 │   ├── 📁 history/                # Call Transcripts
 │   ├── 📄 manage.py              # Django CLI
 │   ├── 📄 requirements.txt       # Python Dependencies
 │   ├── 📄 Dockerfile             # Backend Container
-│   └── 📄 .env                   # Environment Variables
+│   └── 📄 .env                   # Environment Variables (not committed)
 │
 ├── 📁 frontend/                   # Next.js Frontend
 │   ├── 📁 src/
@@ -213,21 +222,142 @@ LokMitra-AI/
 │   ├── 📄 package.json           # Node Dependencies
 │   ├── 📄 tsconfig.json          # TypeScript Config
 │   ├── 📄 tailwind.config.ts     # Tailwind Config
-│   ├── 📄 next.config.js         # Next.js Config
+│   ├── 📄 next.config.ts         # Next.js Config
 │   ├── 📄 Dockerfile             # Frontend Container
-│   └── 📄 .env.local             # Environment Variables
+│   └── 📄 .env.local             # Environment Variables (not committed)
+│
+├── 📁 eKYC/                       # E-KYC Verification Module
+│   ├── 📄 app.py                 # Flask App
+│   └── 📄 ekyc.py               # KYC Logic
 │
 ├── 📁 Scripts/                    # Utility Scripts
-│   ├── 📄 test_vapi.py           # VAPI Testing
-│   └── 📄 deploy.sh              # Deployment Script
 │
 ├── 📁 Research Data/              # Documentation & Research
 │
 ├── 📄 docker-compose.yaml         # Docker Orchestration
 ├── 📄 .gitignore                 # Git Ignore Rules
-├── 📄 README.md                  # This File
-└── 📄 .env                       # Root Environment Variables
+└── 📄 README.md                  # This File
 ```
+
+<div align="center">
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+</div>
+
+## ⚙️ Installation & Setup
+
+### Prerequisites
+
+- Python 3.12+
+- Node.js 18+
+- Docker & Docker Compose (optional, for containerized setup)
+- A Supabase account (for PostgreSQL database)
+- VAPI account (for voice AI)
+- Google Gemini API key
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Charitarths-Git/Public-Ally-AI.git
+cd Public-Ally-AI
+```
+
+### 2. Backend Setup
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+### 3. Frontend Setup
+
+```bash
+cd frontend
+npm install
+```
+
+### 4. Docker Setup (Alternative)
+
+```bash
+docker-compose up --build
+```
+
+<div align="center">
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+</div>
+
+## 🔐 Environment Configuration
+
+### Backend (`backend/.env`)
+
+```env
+# Django
+SECRET_KEY=your-secret-key-here
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1
+
+# Supabase Database
+SUPABASE_DB_HOST=your-supabase-host
+SUPABASE_DB_NAME=postgres
+SUPABASE_DB_USER=postgres
+SUPABASE_DB_PASSWORD=your-db-password
+SUPABASE_DB_PORT=5432
+
+# Supabase SDK
+SUPABASE_URL=your-supabase-url
+SUPABASE_KEY=your-supabase-anon-key
+
+# VAPI (Voice AI)
+VAPI_API_KEY=your-vapi-key
+PHONE_NUMBER_ID=your-vapi-phone-id
+
+# Google APIs
+GEMINI_API_KEY=your-gemini-key
+GOOGLE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+
+# Deployment
+DEPLOYED_URL=https://your-backend-url.com
+```
+
+### Frontend (`frontend/.env.local`)
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+> **Note:** Never commit `.env` files to version control. All secrets must be provided via environment variables in production.
+
+<div align="center">
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+</div>
+
+## 🚀 Usage
+
+### Running Locally
+
+**Backend:**
+```bash
+cd backend
+python manage.py migrate
+python manage.py runserver
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm run dev
+```
+
+The frontend will be available at `http://localhost:3000` and the backend API at `http://localhost:8000`.
+
+### Key Workflows
+
+1. **Login** — Select your organization type (Government Body, Political Party, Company, or Organization).
+2. **Configure AI Agent** — Set the agent name, description, and upload knowledge documents.
+3. **Connect Databases** — Upload CSV/Excel files or connect Supabase/Google Sheets for real-time data.
+4. **Start Calling** — Initiate outbound campaigns or activate inbound agent handling.
+5. **Monitor & Escalate** — Track call history, transcripts, and escalate to human experts when needed.
 
 <div align="center">
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
@@ -291,18 +421,33 @@ LokMitra-AI/
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 </div>
 
-## 📈 Project Stats
+## 👥 Team
+
+This project was built as a group project.
+
+| Name | GitHub |
+|------|--------|
+| Charitarths-Git | [@Charitarths-Git](https://github.com/Charitarths-Git) |
+| Karandeep Singh | [@karancoderg](https://github.com/karancoderg) |
+| Kartavya Mahesh Suryawanshi | [@Kartavya728](https://github.com/Kartavya728) |
+| Blackcoat123 | [@Blackcoat123](https://github.com/Blackcoat123) |
+| Noor | — |
+
+<div align="center">
+<img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
+</div>
+
+## 📈 Repository Stats
 
 <div align="center">
 
-![GitHub repo size](https://img.shields.io/github/repo-size/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub stars](https://img.shields.io/github/stars/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub forks](https://img.shields.io/github/forks/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub issues](https://img.shields.io/github/issues/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub contributors](https://img.shields.io/github/contributors/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub last commit](https://img.shields.io/github/last-commit/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
-![GitHub license](https://img.shields.io/github/license/Kartavya728/LokMitra-AI?style=for-the-badge&logo=github)
+![GitHub repo size](https://img.shields.io/github/repo-size/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub stars](https://img.shields.io/github/stars/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub forks](https://img.shields.io/github/forks/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub issues](https://img.shields.io/github/issues/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub contributors](https://img.shields.io/github/contributors/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
+![GitHub last commit](https://img.shields.io/github/last-commit/Charitarths-Git/Public-Ally-AI?style=for-the-badge&logo=github)
 
 </div>
 
@@ -310,6 +455,17 @@ LokMitra-AI/
 <img src="https://user-images.githubusercontent.com/73097560/115834477-dbab4500-a447-11eb-908a-139a6edaec5c.gif">
 </div>
 
+## 🔒 Security Notes
+
+- All API keys and secrets must be provided via environment variables — never commit `.env` files.
+- The Django `SECRET_KEY` default fallback in `settings.py` must be replaced with a strong, unique key before production deployment.
+- CORS origins are configured in `backend/lokmitra_backend/settings.py` — update for your deployment URLs.
+
+## 📄 License
+
+This project is a group academic/hackathon project. Licensing terms are to be determined by the team.
+
+---
 
 <!-- Animated Footer -->
 <img src="https://capsule-render.vercel.app/api?type=waving&color=gradient&customColorList=6,11,20&height=100&section=footer" />

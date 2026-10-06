@@ -37,7 +37,20 @@ GOOGLE_SHEETS_CREDENTIALS = SERVICE_ACCOUNT_FILE
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-5^f*kn-l-@_bnc)y$p=bzkaoss1@!c%v22w(szjhuafyokk3+1')
+# SECRET_KEY must be set via the SECRET_KEY environment variable (in .env for local dev,
+# or as a platform secret for production). No hardcoded fallback is provided — the previous
+# default was committed to the public repository history and must be treated as compromised.
+# Generate a new key with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+_secret_key = os.getenv('SECRET_KEY')
+if not _secret_key:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured(
+        "SECRET_KEY environment variable is not set. "
+        "Set it in your .env file (local dev) or as a platform secret (production). "
+        "Generate a new key with: "
+        "python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\""
+    )
+SECRET_KEY = _secret_key
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
